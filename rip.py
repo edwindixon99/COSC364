@@ -1,4 +1,8 @@
 import sys
+import socket
+
+HOST = "127.0.0.1"
+
 
 
 class Demon:
@@ -88,7 +92,9 @@ def get_demon(configs, demons):
             update = get_inputs(configs[i])[0]
             #print(update)
 
+    print("loaded values")
     print(router_id, input_ports,output_ports,update)
+    print("")
     if valid_config(router_id, demons, input_ports, output_ports):
         return Demon(router_id, input_ports, output_ports)
     
@@ -108,11 +114,24 @@ def readconf():
     if demon is not None:
         demons.append(demon)
 
-    for demon in demons:
-        print(demon)
-        print(demon.id, demon.inputs, demon.outputs)
+    return demons
     
         
+
+def inputSockets(deamon):
+    socket_values = deamon.inputs
+    sockets = []
+    print("")
+    print("Starting socket construction.\n")
+    for value in socket_values:
+        print("Building socket " + str(value))
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.bind((HOST, value))
+        sockets.append(sock)
+
+    print("\nsocket construction done.\n" + str(len(sockets)) + " scokets have been made.")
+    return sockets
+
 
 
 def main():
@@ -122,8 +141,15 @@ def main():
         print("no config file")
         sys.exit()
 
-    readconf()
+    demons = readconf()
+
+    for demon in demons:
+        ##print(demon)
+        print(demon.id, demon.inputs, demon.outputs)
+
+    sockets = inputSockets(demons[0])
     
+
 
 if __name__ == "__main__":
     main()
