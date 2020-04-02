@@ -1,7 +1,5 @@
 import sys
 import socket
-import select
-import datetime
 
 HOST = "127.0.0.1"
 
@@ -157,21 +155,6 @@ def main():
         print(demon.id, demon.inputs, demon.outputs)
 
     sockets = inputSockets(demons[0])
-
-
-    while True:
-        currentDT = datetime.datetime.now()
-        print("\nHeart Beat: " + currentDT.strftime("%H:%M:%S"))
-        ##-------------------------------------------------------------------------------
-        # this will block until at least one socket is ready (uncomment the one you want)
-            #no timeout
-        #ready_socks,_,_ = select.select(sockets, [], []) 
-            #timeout
-        ready_socks,_,_ = select.select(sockets, [], [], 1) ##timeout is in seconds
-        ##------------------------------------------------------------------------------
-        for sock in ready_socks:
-            data, addr = sock.recvfrom(1024) # This is will not block
-            print "received message:", data
     
 
 
