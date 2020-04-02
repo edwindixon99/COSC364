@@ -100,9 +100,9 @@ def get_demon(configs, demons):
     if valid_config(router_id, demons, input_ports, output_ports):
         return Demon(router_id, input_ports, output_ports)
     
-def readconf():
+def readconf(arg_num, demons):
     print("\n******trying to open file******\n")
-    file = open("./Config/" + sys.argv[1], "r")
+    file = open("./Config/" + sys.argv[arg_num], "r")
 
     configs = file.readlines()
 
@@ -111,14 +111,22 @@ def readconf():
 
     print("********************************\n")
 
-    demons = []
     demon = get_demon(configs, demons)
     if demon is not None:
-        demons.append(demon)
+        return demon
 
-    return demons
     
-        
+
+def get_all_demons():
+    demons = []
+    for i in range(1, len(sys.argv)):
+        demon = readconf(i, demons)
+        if demon is None: 
+            print("\nCould not use file '{}'\n".format(sys.argv[i])) 
+        else:
+            demons.append(demon)
+    return demons
+
 
 def inputSockets(deamon):
     socket_values = deamon.inputs
@@ -143,10 +151,9 @@ def main():
         print("no config file")
         sys.exit()
 
-    demons = readconf()
+    demons = get_all_demons()
 
     for demon in demons:
-        ##print(demon)
         print(demon.id, demon.inputs, demon.outputs)
 
     sockets = inputSockets(demons[0])
