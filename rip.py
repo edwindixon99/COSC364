@@ -1,5 +1,7 @@
 import sys
 import socket
+import select
+import datetime
 
 HOST = "127.0.0.1"
 
@@ -98,9 +100,9 @@ def get_demon(configs, demons):
     if valid_config(router_id, demons, input_ports, output_ports):
         return Demon(router_id, input_ports, output_ports)
     
-def readconf(arg_num, demons):
+def readconf():
     print("\n******trying to open file******\n")
-    file = open("./Config/" + sys.argv[arg_num], "r")
+    file = open("./Config/" + sys.argv[1], "r")
 
     configs = file.readlines()
 
@@ -109,22 +111,14 @@ def readconf(arg_num, demons):
 
     print("********************************\n")
 
+    demons = []
     demon = get_demon(configs, demons)
     if demon is not None:
-        return demon
+        demons.append(demon)
 
-    
-
-def get_all_demons():
-    demons = []
-    for i in range(1, len(sys.argv)):
-        demon = readconf(i, demons)
-        if demon is None: 
-            print("\nCould not use file '{}'\n".format(sys.argv[i])) 
-        else:
-            demons.append(demon)
     return demons
-
+    
+        
 
 def inputSockets(deamon):
     socket_values = deamon.inputs
@@ -149,12 +143,28 @@ def main():
         print("no config file")
         sys.exit()
 
-    demons = get_all_demons()
+    demons = readconf()
 
     for demon in demons:
+        ##print(demon)
         print(demon.id, demon.inputs, demon.outputs)
 
     sockets = inputSockets(demons[0])
+
+
+    while True:
+        currentDT = datetime.datetime.now()
+        print("\nHeart Beat: " + currentDT.strftime("%H:%M:%S"))
+        ##-------------------------------------------------------------------------------
+        # this will block until at least one socket is ready (uncomment the one you want)
+            #no timeout
+        #ready_socks,_,_ = select.select(sockets, [], []) 
+            #timeout
+        ready_socks,_,_ = select.select(sockets, [], [], 1) ##timeout is in seconds
+        ##------------------------------------------------------------------------------
+        for sock in ready_socks:
+            data, addr = sock.recvfrom(1024) # This is will not block
+            print "received message:", data
     
 
 
