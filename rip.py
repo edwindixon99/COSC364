@@ -77,10 +77,14 @@ def valid_ports(input_ports, output_ports):
 #---------------------------------------------------------------------------------------------------------  
 
 
-def get_demon(configs, demons):
+def get_demons(configs):
+    router_id = None
+    input_ports = None
+    output_ports = None
+    demons = []
     for i in range(len(configs)):
         configs[i] = configs[i].rstrip()
-    #print(configs[i])
+        #print(configs[i])
         if configs[i].startswith("router-id:"):
             router_id = get_inputs(configs[i])[0]
             #print(router_id)
@@ -93,12 +97,17 @@ def get_demon(configs, demons):
         elif configs[i].startswith("update:"):
             update = get_inputs(configs[i])[0]
             #print(update)
+        if not (router_id is None or input_ports is None or output_ports is None):      # Won't be able to detect errors in Config file that is formatted incorrect
 
-    print("loaded values")
-    print(router_id, input_ports,output_ports,update)
-    print("")
-    if valid_config(router_id, demons, input_ports, output_ports):
-        return Demon(router_id, input_ports, output_ports)
+            print("loaded values")
+            print(router_id, input_ports,output_ports)
+            print("")
+            if valid_config(router_id, demons, input_ports, output_ports):
+                demons.append(Demon(router_id, input_ports, output_ports))
+            router_id = None
+            input_ports = None
+            output_ports = None
+    return demons
     
 def readconf():
     print("\n******trying to open file******\n")
@@ -111,27 +120,33 @@ def readconf():
 
     print("********************************\n")
 
-    demons = []
-    demon = get_demon(configs, demons)
-    if demon is not None:
-        demons.append(demon)
+    demons = get_demons(configs)
 
     return demons
     
-        
+def allinputSockets(demons):
+    sockets = []
+    print("")
+    print("Starting socket construction.\n")
+
+    for demon in demons:
+        print(demon.id, demon.inputs, demon.outputs)
+        print("")
+
+        sockets += inputSockets(demon)
+
+    print("\nsocket construction done.\n" + str(len(sockets)) + " scokets have been made.")
+    return sockets      
 
 def inputSockets(deamon):
     socket_values = deamon.inputs
     sockets = []
-    print("")
-    print("Starting socket construction.\n")
     for value in socket_values:
         print("Building socket " + str(value))
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.bind((HOST, value))
         sockets.append(sock)
 
-    print("\nsocket construction done.\n" + str(len(sockets)) + " scokets have been made.")
     return sockets
 
 
@@ -145,12 +160,7 @@ def main():
 
     demons = readconf()
 
-    for demon in demons:
-        ##print(demon)
-        print(demon.id, demon.inputs, demon.outputs)
-
-    sockets = inputSockets(demons[0])
-
+    sockets = allinputSockets(demons)
 
     while True:
         currentDT = datetime.datetime.now()
