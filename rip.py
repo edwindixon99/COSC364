@@ -16,6 +16,12 @@ class Demon:
 
     def __repr__(self):
         return "router" + str(self.id)
+    
+    """router1[router2.id] .  returns Output_Port"""
+    def __getitem__(self, router_id):            
+        for i in self.outputs:
+            if i.peer_id == router_id:
+                return i
 
 class Outport_Port:
     def __init__(self, port, metric, peer_id):
@@ -25,6 +31,7 @@ class Outport_Port:
 
     def __repr__(self):
         return "{}".format((self.port, self.metric, self.peer_id))
+
 
 #----------------------------------------------------------  
 def get_inputs(line, output=0):           #set output to 1 for the outputs config line
@@ -138,6 +145,7 @@ def get_all_demons():
   
 def readconf(arg_num, demons):
     print("\n******trying to open file******\n")
+    print(sys.argv[arg_num])
     file = open("./Config/" + sys.argv[arg_num], "r")
 
     configs = file.readlines()
@@ -177,6 +185,67 @@ def inputSockets(deamon):
 
     return sockets
 
+def ports_match(router1, router2):
+
+    if (router1[router2.id] is None):       #is an Output_Port from router1 found with router_id of router2
+        return False
+
+    if (router2[router1.id] is None):       #is an Output_Port from router2 found with router_id of router1
+        return False
+
+    if not (router1[router2.id].port in router2.inputs):        # if the output port is found in router2's input ports
+        return False
+
+    if not (router2[router1.id].port in router1.inputs):        # if the output port is found in router1's input ports
+        return False
+
+    if not (router1[router2.id].metric == router2[router1.id].metric):      # metrics are the same
+        return False
+
+    return True
+
+""" Checks that there are not going to be any duplicate port binding. doesnt work and is inefficent"""
+def unique_link(router1, router2, demons):
+    for demon in demons:
+        counterA = 0
+        counterB = 0
+        for output in demon.outputs:
+            print("output",output)
+            print(router1[router2.id].port)
+            if output.port == router1[router2.id].port:
+                counterA += 1
+            if output.port == router2[router1.id].port:
+                counterB += 1
+            print(counterA > 1 or counterB >1)
+            if counterA > 1 or counterB >1:
+                return False
+        counterA = 0
+        counterB = 0
+        for port in demon.inputs:
+            print("port",port)
+            print(router1[router2.id].port)
+            print(router2[router1.id].port)
+            if port == router1[router2.id].port:
+                counterA += 1
+            if port == router2[router1.id].port:
+                counterB += 1
+            print(counterA > 1 or counterB >1)
+            if counterA > 1 or counterB >1:
+                return False
+    return True
+
+
+
+
+def are_neighboured(a, b, demons):
+    if not (ports_match(a,b)):
+        return False
+
+    if not unique_link(a, b, demons):
+        return False
+    return True
+        
+    
 
 
 def main():
@@ -187,6 +256,10 @@ def main():
         sys.exit()
 
     demons = get_all_demons()
+    
+    print(demons[0])
+    print(are_neighboured(demons[0], demons[1], demons))
+    
 
     sockets = allinputSockets(demons)
 
@@ -202,7 +275,7 @@ def main():
         ##------------------------------------------------------------------------------
         for sock in ready_socks:
             data, addr = sock.recvfrom(1024) # This is will not block
-            print "received message:", data
+            print ("received message:", data)
     
 
 
