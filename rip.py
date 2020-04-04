@@ -15,13 +15,18 @@ class Demon:
         self.timer = timer
 
     def __repr__(self):
-        return "router" + str(self.id)
+        return "{}".format((self.id, self.inputs, self.outputs, self.timer))
     
     """router1[router2.id] .  returns Output_Port"""
     def __getitem__(self, router_id):            
         for i in self.outputs:
             if i.peer_id == router_id:
                 return i
+    def getOutputPorts(self):
+        ports = []
+        for output in self.outputs:
+            ports.append(output.port)
+        return ports
 
 class Outport_Port:
     def __init__(self, port, metric, peer_id):
@@ -96,6 +101,8 @@ def valid_ports(input_ports, output_ports):
         #if not (0 <= port.metric <= 15):           # metric bounds between 0 and ?(not sure) 
             #return False
         # Other checks
+
+        ### 2 output ports going to the same router checker??? ###
     return True
 
 #---------------------------------------------------------------------------------------------------------  
@@ -159,6 +166,87 @@ def readconf(arg_num, demons):
 
     return demons
     
+
+def ports_match(router1, router2):
+    """ checks if two routers have an input/output port connection.
+        Args:
+        router1 (Demon)
+        router2 (Demon)
+        Returns:
+        bool
+    """
+    if (router1[router2.id] is None or router2[router1.id] is None):       #is an Output_Port from router1 found with router_id of router2
+        return False                                                        #is an Output_Port from router2 found with router_id of router1
+                                
+    if not (router1[router2.id].port in router2.inputs):        # if the output port is found in router2's input ports
+        return False
+
+    if not (router2[router1.id].port in router1.inputs):        # if the output port is found in router1's input ports
+        return False
+
+    if not (router1[router2.id].metric == router2[router1.id].metric):      # metrics are the same
+        print("metrics are not the same for routers {}, {}".format(router1.id, router2.id))
+        sys.exit()
+        #return False
+
+    return True
+
+def common_port(a, b):
+    print(list(set(a.inputs) & set(b.getOutputPorts())))
+    return list(set(a.inputs) & set(b.getOutputPorts()))[0]
+
+def are_duplicate_ports(demons, port, a, b):
+    """ ensures no other Host other than a or b have their input/outport ports 
+        Args:
+        demons (list)
+        port (str): port that's being checked
+        a (Demon)
+        b (Demon)
+    """
+    totalinputs = set()
+    totaloutputs = set()
+    
+    for demon in demons:
+        outputs = demon.getOutputPorts()
+        if demon != a and demon != b:
+            if port in demon.inputs:
+                print("Port {} is being used by 'router {}' for input and 'router {}' for output so cannot be used by 'router {}'"
+                .format(port, a.id, b.id, demon.id))
+                sys.exit()
+            if port in outputs:
+                print("Port {} is being used by 'router {}' for input and 'router {}' for output so cannot be used by 'router {}'"
+                .format(port, a.id, b.id, demon.id))
+                sys.exit()
+
+        total = len(totalinputs) + len(demon.inputs)
+        totalinputs = totalinputs | set(demon.inputs)
+        realtotal = len(totalinputs)
+        if not (total == realtotal):
+            print("an input port of 'router {}' is already in use".format(demon.id))
+            sys.exit()
+        total = len(totaloutputs) + len(outputs)                                    #repeation of previous 5 lines 
+        totaloutputs = totaloutputs | set(outputs)                                  #but with terms of output 
+        realtotal = len(totaloutputs)
+        if not (total == realtotal):
+            print("an output port of 'router {}' is already in use".format(demon.id))
+            sys.exit()
+
+
+
+def check_ports(demons):
+    """ checks that the ports given in the configs are valid together
+        if the ports are invalid it will close the program
+    Args:
+        demons (list)
+    """
+    for a in demons:
+        for b in demons:
+            if a != b:
+                if ports_match(a, b):
+                    port = common_port(a, b)
+                    are_duplicate_ports(demons, port, a, b)
+
+
 def allinputSockets(demons):
     sockets = []
     print("")
@@ -183,70 +271,7 @@ def inputSockets(deamon):
         sock.bind((HOST, value))
         sockets.append(sock)
 
-    return sockets
-
-def ports_match(router1, router2):
-
-    if (router1[router2.id] is None):       #is an Output_Port from router1 found with router_id of router2
-        return False
-
-    if (router2[router1.id] is None):       #is an Output_Port from router2 found with router_id of router1
-        return False
-
-    if not (router1[router2.id].port in router2.inputs):        # if the output port is found in router2's input ports
-        return False
-
-    if not (router2[router1.id].port in router1.inputs):        # if the output port is found in router1's input ports
-        return False
-
-    if not (router1[router2.id].metric == router2[router1.id].metric):      # metrics are the same
-        return False
-
-    return True
-
-""" Checks that there are not going to be any duplicate port binding. doesnt work and is inefficent"""
-def unique_link(router1, router2, demons):
-    for demon in demons:
-        counterA = 0
-        counterB = 0
-        for output in demon.outputs:
-            print("output",output)
-            print(router1[router2.id].port)
-            if output.port == router1[router2.id].port:
-                counterA += 1
-            if output.port == router2[router1.id].port:
-                counterB += 1
-            print(counterA > 1 or counterB >1)
-            if counterA > 1 or counterB >1:
-                return False
-        counterA = 0
-        counterB = 0
-        for port in demon.inputs:
-            print("port",port)
-            print(router1[router2.id].port)
-            print(router2[router1.id].port)
-            if port == router1[router2.id].port:
-                counterA += 1
-            if port == router2[router1.id].port:
-                counterB += 1
-            print(counterA > 1 or counterB >1)
-            if counterA > 1 or counterB >1:
-                return False
-    return True
-
-
-
-
-def are_neighboured(a, b, demons):
-    if not (ports_match(a,b)):
-        return False
-
-    if not unique_link(a, b, demons):
-        return False
-    return True
-        
-    
-
+    return sockets    
 
 def main():
     print("starting rip")
@@ -257,9 +282,10 @@ def main():
 
     demons = get_all_demons()
     
-    print(demons[0])
-    print(are_neighboured(demons[0], demons[1], demons))
+    check_ports(demons)
     
+
+    print(demons[0])
 
     sockets = allinputSockets(demons)
 
