@@ -52,23 +52,40 @@ def valid_config(router_id, demons, input_ports, output_ports):
     return unique_valid_id(router_id, demons) and valid_ports(input_ports, output_ports)
 
 def unique_valid_id(router_id, demons):
-    if router_id <= 0:
-        return False
+    try:
+        if router_id <= 0:
+            print("router-id cannot be less than 0")
+            sys.exit()
+    except TypeError:
+        print("router-id must be an integer")
+        sys.exit()
     for demon in demons:
         if demon.id == router_id:
-            return False 
+            print("router-id must be unique")
+            sys.exit()
     return True
 
 
 def valid_ports(input_ports, output_ports):
-    for port in input_ports:
-        if not (1024 <= port <= 64000):
-            return False
+    try:
+        for port in input_ports:
+            if not (1024 <= port <= 64000):
+                print("input-ports must be between 1024 and 64000")
+                sys.exit()
+    except TypeError:
+        print("input-ports must be an integer")
+        sys.exit()
     for port in output_ports:
-        if not (1024 <= port.port <= 64000):
-            return False
-        if port.port in input_ports:          # input port cannot be an output port
-            return False
+        try:
+            if not (1024 <= port.port <= 64000):
+                print("output-ports must be an integer between 1024 and 64000")
+                sys.exit()
+            if port.port in input_ports:          # input port cannot be an output port
+                print("input cannot port cannot be an output port")
+                sys.exit()
+        except TypeError:
+            print("output-ports must be an integer")
+            sys.exit()
         #if not (0 <= port.metric <= 15):           # metric bounds between 0 and ?(not sure) 
             #return False
         # Other checks
@@ -77,11 +94,11 @@ def valid_ports(input_ports, output_ports):
 #---------------------------------------------------------------------------------------------------------  
 
 
-def get_demons(configs):
+def get_demon(configs, demons):
     router_id = None
     input_ports = None
     output_ports = None
-    demons = []
+
     for i in range(len(configs)):
         configs[i] = configs[i].rstrip()
         #print(configs[i])
@@ -97,21 +114,31 @@ def get_demons(configs):
         elif configs[i].startswith("update:"):
             update = get_inputs(configs[i])[0]
             #print(update)
-        if not (router_id is None or input_ports is None or output_ports is None):      # Won't be able to detect errors in Config file that is formatted incorrect
 
-            print("loaded values")
-            print(router_id, input_ports,output_ports)
-            print("")
-            if valid_config(router_id, demons, input_ports, output_ports):
-                demons.append(Demon(router_id, input_ports, output_ports))
-            router_id = None
-            input_ports = None
-            output_ports = None
-    return demons
+    if (router_id is None or input_ports is None or output_ports is None):      # Won't be able to detect errors in Config file that is formatted incorrect
+        print("Mandatory parameter/s missing. requires router-id, input-ports, outputs")
+        sys.exit()
+    print("loaded values")
+    print(router_id, input_ports,output_ports)
+    print("")
+    if valid_config(router_id, demons, input_ports, output_ports):
+        return Demon(router_id, input_ports, output_ports)
     
-def readconf():
+                
+
+def get_all_demons():
+    demons = []
+    for i in range(1, len(sys.argv)):
+        demon = readconf(i, demons)
+        if demon is None: 
+            print("\nCould not use file '{}'\n".format(sys.argv[i])) 
+        else:
+            demons.append(demon)
+    return demons
+  
+def readconf(arg_num, demons):
     print("\n******trying to open file******\n")
-    file = open("./Config/" + sys.argv[1], "r")
+    file = open("./Config/" + sys.argv[arg_num], "r")
 
     configs = file.readlines()
 
@@ -120,7 +147,7 @@ def readconf():
 
     print("********************************\n")
 
-    demons = get_demons(configs)
+    demons = get_demon(configs, demons)
 
     return demons
     
@@ -130,6 +157,7 @@ def allinputSockets(demons):
     print("Starting socket construction.\n")
 
     for demon in demons:
+        print("")
         print(demon.id, demon.inputs, demon.outputs)
         print("")
 
@@ -158,7 +186,7 @@ def main():
         print("no config file")
         sys.exit()
 
-    demons = readconf()
+    demons = get_all_demons()
 
     sockets = allinputSockets(demons)
 
