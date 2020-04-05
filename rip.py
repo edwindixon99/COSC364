@@ -250,7 +250,7 @@ def check_ports(demons):
 def allinputSockets(demons):
     sockets = []
     print("")
-    print("Starting socket construction.\n")
+    print("Starting input socket construction.\n")
 
     for demon in demons:
         print("")
@@ -259,7 +259,7 @@ def allinputSockets(demons):
 
         sockets += inputSockets(demon)
 
-    print("\nsocket construction done.\n" + str(len(sockets)) + " scokets have been made.")
+    print("\ninput socket construction done.\n" + str(len(sockets)) + " scokets have been made.")
     return sockets      
 
 def inputSockets(deamon):
@@ -287,7 +287,7 @@ def main():
 
     print(demons[0])
 
-    sockets = allinputSockets(demons)
+    InputSockets = allinputSockets(demons)
 
     while True:
         currentDT = datetime.datetime.now()
@@ -297,7 +297,7 @@ def main():
             #no timeout
         #ready_socks,_,_ = select.select(sockets, [], []) 
             #timeout
-        ready_socks,_,_ = select.select(sockets, [], [], 1) ##timeout is in seconds
+        ready_socks,_,_ = select.select(InputSockets, [], [], 1) ##timeout is in seconds
         ##------------------------------------------------------------------------------
         for sock in ready_socks:
             data, addr = sock.recvfrom(1024) # This is will not block
