@@ -2,6 +2,7 @@ import sys
 import socket
 import select
 import datetime
+import time
 
 HOST = "127.0.0.1"
 
@@ -136,7 +137,7 @@ def get_demon(configs, demons):
     print(router_id, input_ports,output_ports)
     print("")
     if valid_config(router_id, demons, input_ports, output_ports):
-        return Demon(router_id, input_ports, output_ports)
+        return Demon(router_id, input_ports, output_ports, update)
     
                 
 
@@ -271,7 +272,23 @@ def inputSockets(deamon):
         sock.bind((HOST, value))
         sockets.append(sock)
 
-    return sockets    
+    return sockets  
+
+ 
+def outputsockets(demon):
+    print("")
+    print("Starting output socket construction.\n")
+    socket_values = demon.outputs
+    sockets = []
+    
+    for value in socket_values:
+        print("Building socket " + str(value.port))
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        #sock.connect((HOST, value.port))
+        sockets.append((sock, value.port))
+    print("\nOutput socket construction done.\n" + str(len(sockets)) + " scokets have been made.")
+    
+    return sockets 
 
 def main():
     print("starting rip")
@@ -285,13 +302,26 @@ def main():
     check_ports(demons)
     
 
-    print(demons[0])
-
+    #print(demons[0].outputs)
+    OutputSockets = outputsockets(demons[0])
     InputSockets = allinputSockets(demons)
+    
 
+    Timer = demons[0].timer
+    temp = 0
     while True:
         currentDT = datetime.datetime.now()
         print("\nHeart Beat: " + currentDT.strftime("%H:%M:%S"))
+
+        #MAIN OUTPUT CODE
+        if((time.time() - Timer) >= demons[0].timer):  
+            for sock in OutputSockets:
+                print("sending to port " + str(sock[1]))
+                sock[0].sendto("This is a test " + str(temp), (HOST, sock[1]))
+            temp += 1
+            Timer = time.time()
+
+        ##MAIN INPUT CODE
         ##-------------------------------------------------------------------------------
         # this will block until at least one socket is ready (uncomment the one you want)
             #no timeout
