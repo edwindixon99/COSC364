@@ -38,6 +38,55 @@ class Outport_Port:
     def __repr__(self):
         return "{}".format((self.port, self.metric, self.peer_id))
 
+class Routing_Table(list) :     # acts like a dictionary in terms of indexing
+    def __init__(self):
+        list.__init__(self)
+
+    def __getitem__(self, router_id):            
+        for entry in self:
+            if entry.router == router_id:
+                return entry
+
+    def __setitem__(self, router_id, new_data):         # new_data = (distance, nexthop)
+        for entry in self:
+            if entry.router == router_id:       
+                entry.distance = new_data[0]
+                entry.nexthop = new_data[1]
+                break
+
+    def __repr__(self):
+        if len(self) == 0:
+            return "[]"
+        result = "\n"
+        for entry in self:
+            result += "     {}\n".format(entry)
+        return "[{}]".format(result)
+
+
+class Table_Entry:
+    def __init__(self, router, distance, nexthop):
+        self.router = router
+        self.distance = distance
+        self.nexthop = nexthop
+
+    def __repr__(self):
+        return "dest: {}, dist: {}, next hop: {}".format(self.router, self.distance, self.nexthop)
+
+
+def message_header(command, version):
+    """ pg 20
+        command:
+            1=request
+            2=response
+        version:
+            always 1 or 2?
+    """
+    return command.to_bytes(1, byteorder='big') + version.to_bytes(1, byteorder='big') + (0).to_bytes(2, byteorder='big')
+
+def message_entry(ipv4_addr, metric):
+    """pg 21"""
+    return command.to_bytes(2, byteorder='big') + (0).to_bytes(2, byteorder='big') 
+    + ipv4_addr.to_bytes(4, byteorder='big') + (0).to_bytes(8, byteorder='big') + metric.to_bytes(4, byteorder='big')
 
 #----------------------------------------------------------  
 def get_inputs(line, output=0):           #set output to 1 for the outputs config line
@@ -200,6 +249,20 @@ def outputsockets(demon):
 
 def main():
     print("starting rip")
+
+    """     how Routing_Table and Table_Entry work
+    red = Routing_Table()
+    print(red)
+    entry = Table_Entry(1, 2, 3)
+    print(entry)
+    red.append(entry)
+    print(red)
+    print(red[1])
+    red[1] = 1239, 51
+    print(red[1])
+    print(red)
+    """
+    
 
     if (len(sys.argv) < 2):
         print("no config file")
