@@ -143,18 +143,17 @@ def get_demon(configs, demons):
 
 def get_all_demons():
     demons = []
-    for i in range(1, len(sys.argv)):
-        demon = readconf(i, demons)
-        if demon is None: 
-            print("\nCould not use file '{}'\n".format(sys.argv[i])) 
-        else:
-            demons.append(demon)
+    demon = readconf(demons)
+
+    if demon is None: 
+        print("\nCould not use file '{}'\n".format(sys.argv[1])) 
+        sys.exit()
+    demons.append(demon)
     return demons
   
-def readconf(arg_num, demons):
+def readconf(demons):
     print("\n******trying to open file******\n")
-    print(sys.argv[arg_num])
-    file = open("./Config/" + sys.argv[arg_num], "r")
+    file = open("./Config/" + sys.argv[1], "r")
 
     configs = file.readlines()
 
@@ -166,112 +165,21 @@ def readconf(arg_num, demons):
     demons = get_demon(configs, demons)
 
     return demons
-    
-
-def ports_match(router1, router2):
-    """ checks if two routers have an input/output port connection.
-        Args:
-        router1 (Demon)
-        router2 (Demon)
-        Returns:
-        bool
-    """
-    if (router1[router2.id] is None or router2[router1.id] is None):       #is an Output_Port from router1 found with router_id of router2
-        return False                                                        #is an Output_Port from router2 found with router_id of router1
-                                
-    if not (router1[router2.id].port in router2.inputs):        # if the output port is found in router2's input ports
-        return False
-
-    if not (router2[router1.id].port in router1.inputs):        # if the output port is found in router1's input ports
-        return False
-
-    if not (router1[router2.id].metric == router2[router1.id].metric):      # metrics are the same
-        print("metrics are not the same for routers {}, {}".format(router1.id, router2.id))
-        sys.exit()
-        #return False
-
-    return True
-
-def common_port(a, b):
-    print(list(set(a.inputs) & set(b.getOutputPorts())))
-    return list(set(a.inputs) & set(b.getOutputPorts()))[0]
-
-def are_duplicate_ports(demons, port, a, b):
-    """ ensures no other Host other than a or b have their input/outport ports 
-        Args:
-        demons (list)
-        port (str): port that's being checked
-        a (Demon)
-        b (Demon)
-    """
-    totalinputs = set()
-    totaloutputs = set()
-    
-    for demon in demons:
-        outputs = demon.getOutputPorts()
-        if demon != a and demon != b:
-            if port in demon.inputs:
-                print("Port {} is being used by 'router {}' for input and 'router {}' for output so cannot be used by 'router {}'"
-                .format(port, a.id, b.id, demon.id))
-                sys.exit()
-            if port in outputs:
-                print("Port {} is being used by 'router {}' for input and 'router {}' for output so cannot be used by 'router {}'"
-                .format(port, a.id, b.id, demon.id))
-                sys.exit()
-
-        total = len(totalinputs) + len(demon.inputs)
-        totalinputs = totalinputs | set(demon.inputs)
-        realtotal = len(totalinputs)
-        if not (total == realtotal):
-            print("an input port of 'router {}' is already in use".format(demon.id))
-            sys.exit()
-        total = len(totaloutputs) + len(outputs)                                    #repeation of previous 5 lines 
-        totaloutputs = totaloutputs | set(outputs)                                  #but with terms of output 
-        realtotal = len(totaloutputs)
-        if not (total == realtotal):
-            print("an output port of 'router {}' is already in use".format(demon.id))
-            sys.exit()
-
-
-
-def check_ports(demons):
-    """ checks that the ports given in the configs are valid together
-        if the ports are invalid it will close the program
-    Args:
-        demons (list)
-    """
-    for a in demons:
-        for b in demons:
-            if a != b:
-                if ports_match(a, b):
-                    port = common_port(a, b)
-                    are_duplicate_ports(demons, port, a, b)
-
-
-def allinputSockets(demons):
-    sockets = []
-    print("")
-    print("Starting input socket construction.\n")
-
-    for demon in demons:
-        print("")
-        print(demon.id, demon.inputs, demon.outputs)
-        print("")
-
-        sockets += inputSockets(demon)
-
-    print("\ninput socket construction done.\n" + str(len(sockets)) + " scokets have been made.")
-    return sockets      
+      
 
 def inputSockets(deamon):
+    print("")
+    print("Starting input socket construction.\n")
     socket_values = deamon.inputs
     sockets = []
+
     for value in socket_values:
         print("Building socket " + str(value))
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.bind((HOST, value))
         sockets.append(sock)
-
+    print("\ninput socket construction done.\n" + str(len(sockets)) + " scokets have been made.")
+    
     return sockets  
 
  
@@ -299,12 +207,9 @@ def main():
 
     demons = get_all_demons()
     
-    check_ports(demons)
-    
-
     #print(demons[0].outputs)
     OutputSockets = outputsockets(demons[0])
-    InputSockets = allinputSockets(demons)
+    InputSockets = inputSockets(demons[0])
     
 
     Timer = demons[0].timer
@@ -317,7 +222,7 @@ def main():
         if((time.time() - Timer) >= demons[0].timer):  
             for sock in OutputSockets:
                 print("sending to port " + str(sock[1]))
-                sock[0].sendto("This is a test " + str(temp), (HOST, sock[1]))
+                sock[0].sendto(str.encode("This is a test " + str(temp)), (HOST, sock[1]))
             temp += 1
             Timer = time.time()
 
