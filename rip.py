@@ -39,7 +39,7 @@ class Outport_Port:
         return "{}".format((self.port, self.metric, self.peer_id))
 
 class Routing_Table(list) :     # acts like a dictionary in terms of indexing
-    def __init__(self):
+    def __init__(self):         
         list.__init__(self)
 
     def __getitem__(self, router_id):            
@@ -64,6 +64,20 @@ class Routing_Table(list) :     # acts like a dictionary in terms of indexing
 
 
 class Table_Entry:
+    """
+    page 8 says entry could have 
+     - address: in IP implementations of these algorithms, this will be
+     the IP address of the host or network.
+
+    - router: the first router along the route to the destination.
+
+    - interface: the physical network which must be used to reach the
+        first router.
+
+    - metric: a number, indicating the distance to the destination.
+
+    - timer: the amount of time since the entry was last updated.
+   """
     def __init__(self, router, distance, nexthop):
         self.router = router
         self.distance = distance
@@ -73,20 +87,28 @@ class Table_Entry:
         return "dest: {}, dist: {}, next hop: {}".format(self.router, self.distance, self.nexthop)
 
 
+def bellman_ford(routing_table, id, response): 
+    response       #uses the update/response packet data???
+    if routing_table[id] is not None:
+        k = None
+        distance = min(routing_table[id].distance, routing_table[id].distance)
+    pass
+    
 def message_header(command, version):
     """ pg 20
         command:
             1=request
             2=response
         version:
-            always 1 or 2?
+            always 2?
     """
     return command.to_bytes(1, byteorder='big') + version.to_bytes(1, byteorder='big') + (0).to_bytes(2, byteorder='big')
 
-def message_entry(ipv4_addr, metric):
+def message_entry(afi, ipv4_addr, metric):
     """pg 21"""
-    return command.to_bytes(2, byteorder='big') + (0).to_bytes(2, byteorder='big') 
+    return afi.to_bytes(2, byteorder='big') + (0).to_bytes(2, byteorder='big') 
     + ipv4_addr.to_bytes(4, byteorder='big') + (0).to_bytes(8, byteorder='big') + metric.to_bytes(4, byteorder='big')
+
 
 #----------------------------------------------------------  
 def get_inputs(line, output=0):           #set output to 1 for the outputs config line
