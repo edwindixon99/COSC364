@@ -86,13 +86,15 @@ class Table_Entry:
     def __repr__(self):
         return "|DEST: {} | DIST: {} | next hop: {}|".format(self.router, self.distance, self.nexthop)
 
-"""doesnt work!"""
-def bellman_ford(routing_table, id, response): 
-    response       #uses the update/response packet data???
-    if routing_table[id] is not None:
-        k = None
-        distance = min(routing_table[id].distance, routing_table[id].distance)
-    pass
+"""not complete"""
+def bellman_ford(routing_table, response_entry): 
+        dest = response_entry.router
+        dist = response_entry.distance
+        response_sender = response_entry.nexthop
+        
+        new_distance = min(dist + routing_table[response_sender].distance , routing_table[dest].distance)
+        if new_distance != routing_table[dest].distance:
+            routing_table[dest] = (new_distance, response_sender)
     
 def message_header(command, own_router_id):
     """ pg 20
@@ -137,7 +139,7 @@ def initial_entries(table, demons):
         for output in demons.outputs:
             table.append(Table_Entry(output.peer_id, output.metric, output.peer_id))
 
-def read_packet(packet):
+def read_packet(own_id, packet):
     """ gets list of entries to be compared with routing table
     
         packet: recieved from another router
@@ -166,7 +168,8 @@ def read_packet(packet):
                 if valid:
                     router_id = int.from_bytes(packet[ei+4:ei+8], "big")
                     metric = int.from_bytes(packet[ei+16:ei+20], "big")
-                    entries.append(Table_Entry(router_id, metric, sender_id))
+                    if router_id != own_id:
+                        entries.append(Table_Entry(router_id, metric, sender_id))
                     ei += 20
 
             return entries
@@ -177,6 +180,19 @@ def read_packet(packet):
     except IndexError:
         print("unable to read packet")
         return entries
+
+def update_table(table, entries):
+    for entry in entries:    
+        if table[entry.router] is None:         # new router id added is added to table
+            table.append(entry)
+        else:
+            # bellman ford updates to table
+            bellman_ford(table, entry)
+                  
+
+
+
+
             
 #----------------------------------------------------------  
 def get_inputs(line, output=0):           #set output to 1 for the outputs config line
@@ -396,7 +412,8 @@ def main():
         for sock in ready_socks:
             data, addr = sock.recvfrom(1024) # This is will not block
             print ("received message:", data)
-            print(read_packet(data))
+            entries = read_packet(demons[0].id, data)
+            update_table(table, entries)
     
 
 
