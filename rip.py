@@ -99,8 +99,9 @@ def message_header(command, own_router_id):
         command:
             1=request
             2=response
-        version:
-            always 2?
+
+        router_id:
+            The router id of this router 
     """
     version = 2
     return bytearray(command.to_bytes(1, byteorder='big') + version.to_bytes(1, byteorder='big') + own_router_id.to_bytes(2, byteorder='big'))
@@ -113,7 +114,13 @@ def message_entry(dest_router_id, metric):
 
 
 def generate_update_packet(id, table):
-    packet = message_header(id, 2)
+    """
+        id: The router id of this router 
+        table: This router's routing table
+
+        returns: update packet
+    """
+    packet = message_header(2, id)
     for entry in table:
         print(entry)
         packet += message_entry(entry.router, entry.distance)
@@ -121,9 +128,56 @@ def generate_update_packet(id, table):
 
 
 def initial_entries(table, demons):
+    """ adds neigbours listed in config file
+
+        table: This router's routing table
+        demons: demons
+    """
     for demons in demons:
         for output in demons.outputs:
             table.append(Table_Entry(output.peer_id, output.metric, output.peer_id))
+
+def read_packet(packet):
+    """ gets list of entries to be compared with routing table
+    
+        packet: recieved from another router
+
+        returns: list of entries 
+    """
+    entries = []
+    try:
+        command = packet[0]
+        version = packet[1]
+        sender_id = int.from_bytes(packet[2:4], "big")
+
+        if version != 2:
+            return None
+
+        if command == 2:        # packet is a response
+            ei = 4
+            num_of_entries = int((len(packet) - 4)/20)
+            for i in range(num_of_entries):
+                
+                # is valid format
+                valid = (int.from_bytes(packet[ei:ei+2], "big") == 2    # AFI    
+                and int.from_bytes(packet[ei+2:ei+4], "big") == 0       # must be zero
+                and int.from_bytes(packet[ei+8:ei+16], "big") == 0)     # must be zero
+
+                if valid:
+                    router_id = int.from_bytes(packet[ei+4:ei+8], "big")
+                    metric = int.from_bytes(packet[ei+16:ei+20], "big")
+                    entries.append(Table_Entry(router_id, metric, sender_id))
+                    ei += 20
+
+            return entries
+
+        elif command == 1:         # packet is a request
+            pass
+
+    except IndexError:
+        print("unable to read packet")
+        return entries
+            
 #----------------------------------------------------------  
 def get_inputs(line, output=0):           #set output to 1 for the outputs config line
     inputs = line.split(' ')[1:]
@@ -286,18 +340,17 @@ def outputsockets(demon):
 def main():
     print("starting rip")
 
-    """     how Routing_Table and Table_Entry work
-    red = Routing_Table()
-    print(red)
-    entry = Table_Entry(1, 2, 3)
-    print(entry)
-    red.append(entry)
-    print(red)
-    print(red[1])
-    red[1] = 1239, 51
-    print(red[1])
-    print(red)
-    """
+    # how Routing_Table and Table_Entry work
+    # red = Routing_Table()
+    # print(red)
+    # entry = Table_Entry(1, 2, 3)
+    # print(entry)
+    # red.append(entry)
+    # print(red)
+    # print(red[1])
+    # red[1] = 1239, 51
+    # print(red[1])
+    # print(red)
     
 
     if (len(sys.argv) < 2):
@@ -327,7 +380,7 @@ def main():
             packet = generate_update_packet(demons[0].id, table)  
             for sock in OutputSockets:
                 print("sending to port " + str(sock[1]))
-                sock[0].sendto(str.encode("This is a test " + str(temp)), (HOST, sock[1]))
+                # sock[0].sendto(str.encode("This is a test " + str(temp)), (HOST, sock[1]))
                 sock[0].sendto(packet, (HOST, sock[1]))
             temp += 1
             Timer = time.time()
@@ -343,6 +396,7 @@ def main():
         for sock in ready_socks:
             data, addr = sock.recvfrom(1024) # This is will not block
             print ("received message:", data)
+            print(read_packet(data))
     
 
 
