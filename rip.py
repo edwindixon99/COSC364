@@ -84,9 +84,9 @@ class Table_Entry:
         self.nexthop = nexthop
 
     def __repr__(self):
-        return "dest: {}, dist: {}, next hop: {}".format(self.router, self.distance, self.nexthop)
+        return "|DEST: {} | DIST: {} | next hop: {}|".format(self.router, self.distance, self.nexthop)
 
-
+"""doesnt work!"""
 def bellman_ford(routing_table, id, response): 
     response       #uses the update/response packet data???
     if routing_table[id] is not None:
@@ -94,7 +94,7 @@ def bellman_ford(routing_table, id, response):
         distance = min(routing_table[id].distance, routing_table[id].distance)
     pass
     
-def message_header(command, version):
+def message_header(command, own_router_id):
     """ pg 20
         command:
             1=request
@@ -102,14 +102,28 @@ def message_header(command, version):
         version:
             always 2?
     """
-    return command.to_bytes(1, byteorder='big') + version.to_bytes(1, byteorder='big') + (0).to_bytes(2, byteorder='big')
+    version = 2
+    return bytearray(command.to_bytes(1, byteorder='big') + version.to_bytes(1, byteorder='big') + own_router_id.to_bytes(2, byteorder='big'))
 
-def message_entry(afi, ipv4_addr, metric):
+def message_entry(dest_router_id, metric):
     """pg 21"""
-    return afi.to_bytes(2, byteorder='big') + (0).to_bytes(2, byteorder='big') 
-    + ipv4_addr.to_bytes(4, byteorder='big') + (0).to_bytes(8, byteorder='big') + metric.to_bytes(4, byteorder='big')
+    afi = 2
+    return bytearray(afi.to_bytes(2, byteorder='big') + (0).to_bytes(2, byteorder='big') 
+    + dest_router_id.to_bytes(4, byteorder='big') + (0).to_bytes(8, byteorder='big') + metric.to_bytes(4, byteorder='big'))
 
 
+def generate_update_packet(id, table):
+    packet = message_header(id, 2)
+    for entry in table:
+        print(entry)
+        packet += message_entry(entry.router, entry.distance)
+    return packet
+
+
+def initial_entries(table, demons):
+    for demons in demons:
+        for output in demons.outputs:
+            table.append(Table_Entry(output.peer_id, output.metric, output.peer_id))
 #----------------------------------------------------------  
 def get_inputs(line, output=0):           #set output to 1 for the outputs config line
     inputs = line.split(' ')[1:]
@@ -291,11 +305,16 @@ def main():
         sys.exit()
 
     demons = get_all_demons()
-    
-    #print(demons[0].outputs)
+
     OutputSockets = outputsockets(demons[0])
     InputSockets = inputSockets(demons[0])
+
+    table = Routing_Table()
     
+    initial_entries(table, demons)
+
+    packet = generate_update_packet(demons[0].id, table)
+
 
     Timer = demons[0].timer
     temp = 0
@@ -304,10 +323,12 @@ def main():
         print("\nHeart Beat: " + currentDT.strftime("%H:%M:%S"))
 
         #MAIN OUTPUT CODE
-        if((time.time() - Timer) >= demons[0].timer):  
+        if((time.time() - Timer) >= demons[0].timer):
+            packet = generate_update_packet(demons[0].id, table)  
             for sock in OutputSockets:
                 print("sending to port " + str(sock[1]))
                 sock[0].sendto(str.encode("This is a test " + str(temp)), (HOST, sock[1]))
+                sock[0].sendto(packet, (HOST, sock[1]))
             temp += 1
             Timer = time.time()
 
