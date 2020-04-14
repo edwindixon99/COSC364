@@ -184,12 +184,20 @@ def read_packet(own_id, packet):
 def update_table(table, entries):
     for entry in entries:    
         if table[entry.router] is None:         # new router id added is added to table
-            table.append(entry)
+            add_entry(table, entry)
         else:
             # bellman ford updates to table
             bellman_ford(table, entry)
                   
+def add_entry(table, entry):
+    dest = entry.router
+    dist = entry.distance
+    sender = entry.nexthop
 
+    new_dist = dist + table[sender].distance
+    
+    new_entry = Table_Entry(dest, new_dist, sender)
+    table.append(new_entry)
 
 
 
