@@ -5,7 +5,7 @@ import datetime
 import time
 
 HOST = "127.0.0.1"
-
+UNREACHABLE = 28            # 16 in documentation 
 
 
 class Demon:
@@ -82,9 +82,11 @@ class Table_Entry:
         self.router = router
         self.distance = distance
         self.nexthop = nexthop
+        self.timedOut = True
 
     def __repr__(self):
-        return "|DEST: {} | DIST: {} | next hop: {}|".format(self.router, self.distance, self.nexthop)
+        # return "|DEST: {} | DIST: {} | next hop: {}|".format(self.router, self.distance, self.nexthop)
+        return "|DEST: {} | DIST: {} | next hop: {}| timedout: {}".format(self.router, self.distance, self.nexthop, self.timedOut)
 
 """not complete"""
 def bellman_ford(routing_table, response_entry): 
@@ -93,7 +95,12 @@ def bellman_ford(routing_table, response_entry):
         response_sender = response_entry.nexthop
         
         new_distance = min(dist + routing_table[response_sender].distance , routing_table[dest].distance)
-        if new_distance != routing_table[dest].distance:
+        # if new_distance != routing_table[dest].distance:
+        #     routing_table[dest] = (new_distance, response_sender)
+        # Lines below are an attempt at making routers unreachable
+        if new_distance >= UNREACHABLE:
+            routing_table[dest] = (UNREACHABLE, response_sender)
+        else:
             routing_table[dest] = (new_distance, response_sender)
     
 def message_header(command, own_router_id):
@@ -135,9 +142,12 @@ def initial_entries(table, demons):
         table: This router's routing table
         demons: demons
     """
+    entries = []
     for demons in demons:
         for output in demons.outputs:
             table.append(Table_Entry(output.peer_id, output.metric, output.peer_id))
+            entries.append(Table_Entry(output.peer_id, output.metric, output.peer_id))
+    return entries
 
 def read_packet(own_id, packet):
     """ gets list of entries to be compared with routing table
@@ -172,7 +182,7 @@ def read_packet(own_id, packet):
                         entries.append(Table_Entry(router_id, metric, sender_id))
                     ei += 20
 
-            return entries
+            return sender_id, entries
 
         elif command == 1:         # packet is a request
             pass
@@ -181,7 +191,8 @@ def read_packet(own_id, packet):
         print("unable to read packet")
         return entries
 
-def update_table(table, entries):
+def update_table(sender_id, table, entries):
+    table[sender_id].timedOut = False
     for entry in entries:    
         if table[entry.router] is None:         # new router id added is added to table
             add_entry(table, entry)
@@ -195,7 +206,8 @@ def add_entry(table, entry):
     sender = entry.nexthop
 
     new_dist = dist + table[sender].distance
-    
+    if new_dist >= UNREACHABLE:
+        new_dist = UNREACHABLE
     new_entry = Table_Entry(dest, new_dist, sender)
     table.append(new_entry)
 
@@ -361,6 +373,32 @@ def outputsockets(demon):
     
     return sockets 
 
+
+def timeout(adj, table):
+    """ DOESN'T WORK!!!
+    checks for changes in the topology of the network whether or not routers have
+    turned off
+
+    seems to work when routers are being switched on. takes a while (2-3 mins) to recaculate paths and 
+    has errors 
+    using variable adj is not good still looking for alternative
+    adj:
+        list of entries of adjacent routers
+    """
+    print("TIMEOUT")
+    for neighbour in adj:
+        id = neighbour.router
+        if table[id].timedOut:
+            table[id].distance = UNREACHABLE
+        elif table[id].distance == UNREACHABLE:
+            table[id] = neighbour.distance, neighbour.nexthop 
+        table[id].timedOut = True
+    for entry in table:
+        if table[entry.nexthop].distance == UNREACHABLE:
+            entry.distance = UNREACHABLE
+    print(table)
+    print()
+            
 def main():
     print("starting rip")
 
@@ -388,12 +426,13 @@ def main():
 
     table = Routing_Table()
     
-    initial_entries(table, demons)
+    adj = initial_entries(table, demons)
 
     packet = generate_update_packet(demons[0].id, table)
 
 
     Timer = demons[0].timer
+    timeoutTimer = 60
     temp = 0
     while True:
         currentDT = datetime.datetime.now()
@@ -408,6 +447,12 @@ def main():
                 sock[0].sendto(packet, (HOST, sock[1]))
             temp += 1
             Timer = time.time()
+        
+        # NEIGHBOUR ROUTER TIMEOUT    
+        # This if statement and timeout function do not work!
+        if((time.time() - timeoutTimer) >= 60):         # timeout will be 180 instead of 60 
+            timeout(adj, table)    
+            timeoutTimer = time.time()
 
         ##MAIN INPUT CODE
         ##-------------------------------------------------------------------------------
@@ -420,8 +465,8 @@ def main():
         for sock in ready_socks:
             data, addr = sock.recvfrom(1024) # This is will not block
             print ("received message:", data)
-            entries = read_packet(demons[0].id, data)
-            update_table(table, entries)
+            sender_id, entries = read_packet(demons[0].id, data)
+            update_table(sender_id, table, entries)
     
 
 
