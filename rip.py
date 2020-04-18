@@ -88,20 +88,6 @@ class Table_Entry:
         # return "|DEST: {} | DIST: {} | next hop: {}|".format(self.router, self.distance, self.nexthop)
         return "|DEST: {} | DIST: {} | next hop: {}| timedout: {}".format(self.router, self.distance, self.nexthop, self.timedOut)
 
-"""not complete"""
-def bellman_ford(routing_table, response_entry): 
-        dest = response_entry.router
-        dist = response_entry.distance
-        response_sender = response_entry.nexthop
-        
-        new_distance = min(dist + routing_table[response_sender].distance , routing_table[dest].distance)
-        # if new_distance != routing_table[dest].distance:
-        #     routing_table[dest] = (new_distance, response_sender)
-        # Lines below are an attempt at making routers unreachable
-        if new_distance >= UNREACHABLE:
-            routing_table[dest] = (UNREACHABLE, response_sender)
-        else:
-            routing_table[dest] = (new_distance, response_sender)
     
 def message_header(command, own_router_id):
     """ pg 20
@@ -208,10 +194,24 @@ def add_entry(table, entry):
     new_dist = dist + table[sender].distance
     if new_dist >= UNREACHABLE:
         new_dist = UNREACHABLE
+        sender = None
     new_entry = Table_Entry(dest, new_dist, sender)
     table.append(new_entry)
 
-
+"""not complete"""
+def bellman_ford(routing_table, response_entry): 
+        dest = response_entry.router
+        dist = response_entry.distance
+        response_sender = response_entry.nexthop
+        
+        new_distance = min(dist + routing_table[response_sender].distance , routing_table[dest].distance)
+        # if new_distance != routing_table[dest].distance:
+        #     routing_table[dest] = (new_distance, response_sender)
+        # Lines below are an attempt at making routers unreachable
+        if new_distance >= UNREACHABLE:
+            routing_table[dest] = (UNREACHABLE, None)
+        else:
+            routing_table[dest] = (new_distance, response_sender)
 
             
 #----------------------------------------------------------  
@@ -390,12 +390,15 @@ def timeout(adj, table):
         id = neighbour.router
         if table[id].timedOut:
             table[id].distance = UNREACHABLE
+            table[id].nexthop = None
         elif table[id].distance == UNREACHABLE:
             table[id] = neighbour.distance, neighbour.nexthop 
         table[id].timedOut = True
     for entry in table:
-        if table[entry.nexthop].distance == UNREACHABLE:
-            entry.distance = UNREACHABLE
+        if table[entry.nexthop] != None:
+            if table[entry.nexthop].distance == UNREACHABLE:
+                entry.distance = UNREACHABLE
+                entry.nexthop = None
     print(table)
     print()
             
@@ -420,6 +423,7 @@ def main():
         sys.exit()
 
     demons = get_all_demons()
+    routerId = demons[0].id
 
     OutputSockets = outputsockets(demons[0])
     InputSockets = inputSockets(demons[0])
@@ -428,19 +432,21 @@ def main():
     
     adj = initial_entries(table, demons)
 
-    packet = generate_update_packet(demons[0].id, table)
+    packet = generate_update_packet(routerId, table)
 
 
     Timer = demons[0].timer
     timeoutTimer = 60
     temp = 0
     while True:
-        currentDT = datetime.datetime.now()
-        print("\nHeart Beat: " + currentDT.strftime("%H:%M:%S"))
+        # currentDT = datetime.datetime.now()
+        # print("\nHeart Beat: " + currentDT.strftime("%H:%M:%S"))
 
         #MAIN OUTPUT CODE
         if((time.time() - Timer) >= demons[0].timer):
+            print("ROUTER {}".format(routerId))
             packet = generate_update_packet(demons[0].id, table)  
+            print()
             for sock in OutputSockets:
                 print("sending to port " + str(sock[1]))
                 # sock[0].sendto(str.encode("This is a test " + str(temp)), (HOST, sock[1]))
@@ -450,7 +456,8 @@ def main():
         
         # NEIGHBOUR ROUTER TIMEOUT    
         # This if statement and timeout function do not work!
-        if((time.time() - timeoutTimer) >= 60):         # timeout will be 180 instead of 60 
+        if((time.time() - timeoutTimer) >= 60):         # timeout will be 180 instead of 60
+            print("ROUTER {}".format(routerId))
             timeout(adj, table)    
             timeoutTimer = time.time()
 
@@ -465,7 +472,7 @@ def main():
         for sock in ready_socks:
             data, addr = sock.recvfrom(1024) # This is will not block
             print ("received message:", data)
-            sender_id, entries = read_packet(demons[0].id, data)
+            sender_id, entries = read_packet(routerId, data)
             update_table(sender_id, table, entries)
     
 

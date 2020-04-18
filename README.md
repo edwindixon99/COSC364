@@ -12,3 +12,7 @@ https://docs.python.org/2/library/select.html
 https://stackoverflow.com/questions/34984443/using-select-method-for-client-server-chat-in-python
 https://docs.python.org/3/library/socket.html
 https://wiki.python.org/moin/UdpCommunication
+
+For running multiple figure1 router programs: 
+-uncomment the routers wanted 
+-in terminal put command "bash ./figure1.sh" 
