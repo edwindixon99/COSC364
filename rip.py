@@ -88,7 +88,7 @@ class Table_Entry:
         # return "|DEST: {} | DIST: {} | next hop: {}|".format(self.router, self.distance, self.nexthop)
         return "|DEST: {} | DIST: {} | next hop: {}| timedout: {}".format(self.router, self.distance, self.nexthop, self.timedOut)
 
-    
+# update_packet ----------------------------------------------------------     
 def message_header(command, own_router_id):
     """ pg 20
         command:
@@ -108,20 +108,27 @@ def message_entry(dest_router_id, metric):
     + dest_router_id.to_bytes(4, byteorder='big') + (0).to_bytes(8, byteorder='big') + metric.to_bytes(4, byteorder='big'))
 
 
-def generate_update_packet(id, table):
+def generate_update_packet(recieverId, id, table):
     """
+        recieverId: The router id of reciever
+        
         id: The router id of this router 
         table: This router's routing table
 
         returns: update packet
     """
     packet = message_header(2, id)
+    print("generating Packet for router {}".format(recieverId))
     for entry in table:
-        print(entry)
-        packet += message_entry(entry.router, entry.distance)
+
+        distance = UNREACHABLE
+        if recieverId != entry.nexthop:
+            distance = entry.distance
+        packet += message_entry(entry.router, distance)
+    print()
     return packet
 
-
+#----------------------------------------------------------  
 def initial_entries(table, demons):
     """ adds neigbours listed in config file
 
@@ -198,22 +205,28 @@ def add_entry(table, entry):
     new_entry = Table_Entry(dest, new_dist, sender)
     table.append(new_entry)
 
-"""not complete"""
-def bellman_ford(routing_table, response_entry): 
-        dest = response_entry.router
-        dist = response_entry.distance
-        response_sender = response_entry.nexthop
-        
-        new_distance = min(dist + routing_table[response_sender].distance , routing_table[dest].distance)
-        # if new_distance != routing_table[dest].distance:
-        #     routing_table[dest] = (new_distance, response_sender)
-        # Lines below are an attempt at making routers unreachable
-        if new_distance >= UNREACHABLE:
-            routing_table[dest] = (UNREACHABLE, None)
-        else:
-            routing_table[dest] = (new_distance, response_sender)
 
-            
+def bellman_ford(routing_table, response_entry): 
+    dest = response_entry.router
+    dist = response_entry.distance
+    response_sender = response_entry.nexthop
+
+    new_distance = min(dist + routing_table[response_sender].distance , routing_table[dest].distance)
+    
+    if new_distance >= UNREACHABLE:                         # calculated distance is infinity 
+        routing_table[dest] = (UNREACHABLE, None)
+
+    elif routing_table[dest].nexthop == response_sender and dist == UNREACHABLE:        # the router that you learned the route from has lost their link from that destianation
+        routing_table[dest] = (UNREACHABLE, None)
+
+    elif new_distance != routing_table[dest].distance:                                  # otherwise if new distance is smaller than one in table relace it (this if statement might be redundant!)
+        routing_table[dest] = (new_distance, response_sender)
+    
+    if routing_table[dest].nexthop != None:                                           # NEED TO RETEST THESE LINES 
+        if routing_table[routing_table[dest].nexthop].distance == UNREACHABLE:
+            routing_table[routing_table[dest]] = (UNREACHABLE, None)
+
+        
 #----------------------------------------------------------  
 def get_inputs(line, output=0):           #set output to 1 for the outputs config line
     inputs = line.split(' ')[1:]
@@ -291,19 +304,18 @@ def get_demon(configs, demons):
 
     for i in range(len(configs)):
         configs[i] = configs[i].rstrip()
-        #print(configs[i])
+
         if configs[i].startswith("router-id:"):
             router_id = get_inputs(configs[i])[0]
-            #print(router_id)
+
         elif configs[i].startswith("input-ports:"):
             input_ports = get_inputs(configs[i])
-            #print(input_ports)
+
         elif configs[i].startswith("outputs:"):
             output_ports = get_inputs(configs[i], 1)
-            #print(output_ports)
+
         elif configs[i].startswith("update:"):
             update = get_inputs(configs[i])[0]
-            #print(update)
 
     if (router_id is None or input_ports is None or output_ports is None):      # Won't be able to detect errors in Config file that is formatted incorrect
         print("Mandatory parameter/s missing. requires router-id, input-ports, outputs")
@@ -368,32 +380,33 @@ def outputsockets(demon):
         print("Building socket " + str(value.port))
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         #sock.connect((HOST, value.port))
-        sockets.append((sock, value.port))
+        sockets.append((value.peer_id, (sock, value.port)))
     print("\nOutput socket construction done.\n" + str(len(sockets)) + " scokets have been made.")
     
     return sockets 
 
 
 def timeout(adj, table):
-    """ DOESN'T WORK!!!
+    """ 
     checks for changes in the topology of the network whether or not routers have
     turned off
 
     seems to work when routers are being switched on. takes a while (2-3 mins) to recaculate paths and 
     has errors 
-    using variable adj is not good still looking for alternative
+    using variable adj not sure if it's good, still looking for alternative
     adj:
         list of entries of adjacent routers
     """
     print("TIMEOUT")
+    print()
     for neighbour in adj:
         id = neighbour.router
         if table[id].timedOut:
-            table[id].distance = UNREACHABLE
-            table[id].nexthop = None
+            table[id]= (UNREACHABLE, None)
         elif table[id].distance == UNREACHABLE:
             table[id] = neighbour.distance, neighbour.nexthop 
         table[id].timedOut = True
+
     for entry in table:
         if table[entry.nexthop] != None:
             if table[entry.nexthop].distance == UNREACHABLE:
@@ -432,22 +445,19 @@ def main():
     
     adj = initial_entries(table, demons)
 
-    packet = generate_update_packet(routerId, table)
 
 
     Timer = demons[0].timer
     timeoutTimer = 60
     temp = 0
     while True:
-        # currentDT = datetime.datetime.now()
-        # print("\nHeart Beat: " + currentDT.strftime("%H:%M:%S"))
+        currentDT = datetime.datetime.now()
+        print("\nHeart Beat: " + currentDT.strftime("%H:%M:%S"))
 
         #MAIN OUTPUT CODE
         if((time.time() - Timer) >= demons[0].timer):
-            print("ROUTER {}".format(routerId))
-            packet = generate_update_packet(demons[0].id, table)  
-            print()
-            for sock in OutputSockets:
+            for (recieverId, sock) in OutputSockets:
+                packet = generate_update_packet(recieverId, routerId, table)
                 print("sending to port " + str(sock[1]))
                 # sock[0].sendto(str.encode("This is a test " + str(temp)), (HOST, sock[1]))
                 sock[0].sendto(packet, (HOST, sock[1]))
@@ -473,7 +483,10 @@ def main():
             data, addr = sock.recvfrom(1024) # This is will not block
             print ("received message:", data)
             sender_id, entries = read_packet(routerId, data)
+            print(table)
             update_table(sender_id, table, entries)
+            print(table)
+            print()
     
 
 
