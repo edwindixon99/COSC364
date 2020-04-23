@@ -491,4 +491,11 @@ def main():
 
 
 if __name__ == "__main__":
+    if (sys.version_info < (3, 0)):
+        print("")
+        print("*" * 19)
+        print("Please use python 3")
+        print("")
+        print("")
+        sys.exit()
     main()
