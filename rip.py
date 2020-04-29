@@ -23,11 +23,6 @@ class Demon:
         for i in self.outputs:
             if i.peer_id == router_id:
                 return i
-    def getOutputPorts(self):
-        ports = []
-        for output in self.outputs:
-            ports.append(output.port)
-        return ports
 
 class Outport_Port:
     def __init__(self, port, metric, peer_id):
@@ -85,10 +80,16 @@ class Table_Entry:
         self.timedOut = True
 
     def __repr__(self):
-        # return "|DEST: {} | DIST: {} | next hop: {}|".format(self.router, self.distance, self.nexthop)
         return "|DEST: {} | DIST: {} | next hop: {}| timedout: {}".format(self.router, self.distance, self.nexthop, self.timedOut)
 
-# update_packet ----------------------------------------------------------     
+#------------------------------------------------------------------------------------------------------------------
+
+# ----------------------------- update_packet processing ---------------------------------------------------------- 
+    
+
+
+
+
 def message_header(command, own_router_id):
     """ pg 20
         command:
@@ -128,19 +129,36 @@ def generate_update_packet(recieverId, id, table):
     print()
     return packet
 
-#----------------------------------------------------------  
-def initial_entries(table, demons):
-    """ adds neigbours listed in config file
+#----------------------------------------------------------------------------------------------------------
+
+
+
+
+
+
+
+def initial_entries(table, demon):
+    """ adds neigbours listed in config file. This function is only used at the start of the program 
+    before the infinite loop 
 
         table: This router's routing table
-        demons: demons
+        demon: demon
+
+        returns entries as a way to remember adj routers
     """
     entries = []
-    for demons in demons:
-        for output in demons.outputs:
-            table.append(Table_Entry(output.peer_id, output.metric, output.peer_id))
-            entries.append(Table_Entry(output.peer_id, output.metric, output.peer_id))
+    for output in demon.outputs:
+        table.append(Table_Entry(output.peer_id, output.metric, output.peer_id))
+        entries.append(Table_Entry(output.peer_id, output.metric, output.peer_id))
+
     return entries
+
+
+#----------------------------------------------------------------------------------------------------------
+
+
+#-------------- Handling of recieved packets --------------------------------------------------------------
+
 
 def read_packet(own_id, packet):
     """ gets list of entries to be compared with routing table
@@ -151,7 +169,8 @@ def read_packet(own_id, packet):
     """
     entries = []
     try:
-        command = packet[0]
+        # Header handling
+        command = packet[0]                                 
         version = packet[1]
         sender_id = int.from_bytes(packet[2:4], "big")
 
@@ -159,7 +178,9 @@ def read_packet(own_id, packet):
             return None
 
         if command == 2:        # packet is a response
-            ei = 4
+
+            # entry handling 
+            ei = 4              # entry index  
             num_of_entries = int((len(packet) - 4)/20)
             for i in range(num_of_entries):
                 
@@ -227,7 +248,16 @@ def bellman_ford(routing_table, response_entry):
             routing_table[routing_table[dest]] = (UNREACHABLE, None)
 
         
-#----------------------------------------------------------  
+#-----------------------------------------------------------------------------------------------------------
+  
+
+
+
+
+#------------------------------ Reading config files and setup -----------------------------------------------------  
+
+
+
 def get_inputs(line, output=0):           #set output to 1 for the outputs config line
     inputs = line.split(' ')[1:]
     
@@ -247,12 +277,13 @@ def get_output_input(data):
     for i in range(len(data)):
         data[i] = int(data[i])
     return Outport_Port(data[0], data[1], data[2])
-#----------------------------------------------------------    
-# Validation checks (not complete)
-def valid_config(router_id, demons, input_ports, output_ports):
-    return unique_valid_id(router_id, demons) and valid_ports(input_ports, output_ports)
 
-def unique_valid_id(router_id, demons):
+
+def valid_config(router_id, input_ports, output_ports):
+    return valid_id(router_id) and valid_ports(input_ports, output_ports)
+
+
+def valid_id(router_id):
     try:
         if router_id <= 0:
             print("router-id cannot be less than 0")
@@ -260,10 +291,7 @@ def unique_valid_id(router_id, demons):
     except TypeError:
         print("router-id must be an integer")
         sys.exit()
-    for demon in demons:
-        if demon.id == router_id:
-            print("router-id must be unique")
-            sys.exit()
+
     return True
 
 
@@ -273,9 +301,11 @@ def valid_ports(input_ports, output_ports):
             if not (1024 <= port <= 64000):
                 print("input-ports must be between 1024 and 64000")
                 sys.exit()
+
     except TypeError:
         print("input-ports must be an integer")
         sys.exit()
+
     for port in output_ports:
         try:
             if not (1024 <= port.port <= 64000):
@@ -284,20 +314,19 @@ def valid_ports(input_ports, output_ports):
             if port.port in input_ports:          # input port cannot be an output port
                 print("input cannot port cannot be an output port")
                 sys.exit()
+
         except TypeError:
             print("output-ports must be an integer")
             sys.exit()
-        #if not (0 <= port.metric <= 15):           # metric bounds between 0 and ?(not sure) 
-            #return False
-        # Other checks
+        if not (0 <= port.metric < UNREACHABLE):           # metric bounds between 0 and ?(not sure) 
+            print("metric must be positive integer and less than {}".format(UNREACHABLE))
+            sys.exit()
 
-        ### 2 output ports going to the same router checker??? ###
     return True
 
-#---------------------------------------------------------------------------------------------------------  
 
 
-def get_demon(configs, demons):
+def get_demon(configs):
     router_id = None
     input_ports = None
     output_ports = None
@@ -323,22 +352,15 @@ def get_demon(configs, demons):
     print("loaded values")
     print(router_id, input_ports,output_ports)
     print("")
-    if valid_config(router_id, demons, input_ports, output_ports):
+
+    if valid_config(router_id, input_ports, output_ports):
         return Demon(router_id, input_ports, output_ports, update)
-    
-                
-
-def get_all_demons():
-    demons = []
-    demon = readconf(demons)
-
-    if demon is None: 
+    else:
         print("\nCould not use file '{}'\n".format(sys.argv[1])) 
         sys.exit()
-    demons.append(demon)
-    return demons
+
   
-def readconf(demons):
+def readconf():
     print("\n******trying to open file******\n")
     file = open("./Config/" + sys.argv[1], "r")
 
@@ -349,11 +371,16 @@ def readconf(demons):
 
     print("********************************\n")
 
-    demons = get_demon(configs, demons)
+    demon = get_demon(configs)
 
-    return demons
+    return demon
       
+#-----------------------------------------------------------------------------------------------
 
+
+
+
+#------------------------------ Port setup -----------------------------------------------------  
 def inputSockets(deamon):
     print("")
     print("Starting input socket construction.\n")
@@ -386,13 +413,18 @@ def outputsockets(demon):
     return sockets 
 
 
+
+#-----------------------------------------------------------------------------------------------
+
+
+
+
+
 def timeout(adj, table):
     """ 
     checks for changes in the topology of the network whether or not routers have
     turned off
 
-    seems to work when routers are being switched on. takes a while (2-3 mins) to recaculate paths and 
-    has errors 
     using variable adj not sure if it's good, still looking for alternative
     adj:
         list of entries of adjacent routers
@@ -414,7 +446,12 @@ def timeout(adj, table):
                 entry.nexthop = None
     print(table)
     print()
-            
+
+
+
+#-----------------------------------------------------------------------------------------------
+
+
 def main():
     print("starting rip")
 
@@ -435,27 +472,27 @@ def main():
         print("no config file")
         sys.exit()
 
-    demons = get_all_demons()
-    routerId = demons[0].id
+    demon = readconf()
+    routerId = demon.id
 
-    OutputSockets = outputsockets(demons[0])
-    InputSockets = inputSockets(demons[0])
+    OutputSockets = outputsockets(demon)
+    InputSockets = inputSockets(demon)
 
     table = Routing_Table()
     
-    adj = initial_entries(table, demons)
+    adj = initial_entries(table, demon)
 
 
 
-    Timer = demons[0].timer
-    timeoutTimer = 60
+    Timer = demon.timer
+    timeoutTimer = 60       # timeout will be 180 instead of 60
     temp = 0
     while True:
         currentDT = datetime.datetime.now()
         print("\nHeart Beat: " + currentDT.strftime("%H:%M:%S"))
 
         #MAIN OUTPUT CODE
-        if((time.time() - Timer) >= demons[0].timer):
+        if((time.time() - Timer) >= demon.timer):
             for (recieverId, sock) in OutputSockets:
                 packet = generate_update_packet(recieverId, routerId, table)
                 print("sending to port " + str(sock[1]))
