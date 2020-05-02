@@ -119,14 +119,14 @@ def generate_update_packet(recieverId, id, table):
         returns: update packet
     """
     packet = message_header(2, id)
-    print("generating Packet for router {}".format(recieverId))
+    print("\ngenerating Packet for router {}".format(recieverId))
     for entry in table:
 
         distance = UNREACHABLE
         if recieverId != entry.nexthop:
             distance = entry.distance
         packet += message_entry(entry.router, distance)
-    print()
+
     return packet
 
 #----------------------------------------------------------------------------------------------------------
@@ -205,14 +205,30 @@ def read_packet(own_id, packet):
         print("unable to read packet")
         return entries
 
-def update_table(sender_id, table, entries):
-    table[sender_id].timedOut = False
-    for entry in entries:    
+def update_table(sender_id, table, entries, routerId, OutputSockets):
+
+    table[sender_id].timedOut = False          # A packet has been recieved from this sender since the timeout
+    table_change = False                       # bool for if there is a table change
+
+    for entry in entries:
+        
+
         if table[entry.router] is None:         # new router id added is added to table
             add_entry(table, entry)
+            table_change = True
         else:
             # bellman ford updates to table
-            bellman_ford(table, entry)
+            if bellman_ford(table, entry):
+                table_change = True
+
+    # TRIGGERED UPDATE
+    if table_change:
+        print(table)                                                # if there is a table change send
+        print("A Table Change has occured resending packets\n")
+        send_update_packet(OutputSockets, routerId, table)
+
+
+
                   
 def add_entry(table, entry):
     dest = entry.router
@@ -231,6 +247,7 @@ def bellman_ford(routing_table, response_entry):
     dest = response_entry.router
     dist = response_entry.distance
     response_sender = response_entry.nexthop
+    original = routing_table[dest].distance
 
     new_distance = min(dist + routing_table[response_sender].distance , routing_table[dest].distance)
     
@@ -242,10 +259,14 @@ def bellman_ford(routing_table, response_entry):
 
     elif new_distance != routing_table[dest].distance:                                  # otherwise if new distance is smaller than one in table relace it (this if statement might be redundant!)
         routing_table[dest] = (new_distance, response_sender)
-    
+  
     if routing_table[dest].nexthop != None:                                           # NEED TO RETEST THESE LINES 
         if routing_table[routing_table[dest].nexthop].distance == UNREACHABLE:
             routing_table[routing_table[dest]] = (UNREACHABLE, None)
+
+    return original != routing_table[dest].distance
+    
+
 
         
 #-----------------------------------------------------------------------------------------------------------
@@ -448,25 +469,27 @@ def timeout(adj, table):
     print()
 
 
+def send_update_packet(OutputSockets, routerId, table):
+    """sends packets to adj routers on the ports given in the config file
+    OutputSockets: 
+        sockets to send packets to neighbours
+    routerID: 
+        ID of this router (sender)
+    """
+
+    for (recieverId, sock) in OutputSockets:
+        packet = generate_update_packet(recieverId, routerId, table)
+        print("sending to port " + str(sock[1]))
+        print()
+        sock[0].sendto(packet, (HOST, sock[1]))
+
+
 
 #-----------------------------------------------------------------------------------------------
 
 
 def main():
     print("starting rip")
-
-    # how Routing_Table and Table_Entry work
-    # red = Routing_Table()
-    # print(red)
-    # entry = Table_Entry(1, 2, 3)
-    # print(entry)
-    # red.append(entry)
-    # print(red)
-    # print(red[1])
-    # red[1] = 1239, 51
-    # print(red[1])
-    # print(red)
-    
 
     if (len(sys.argv) < 2):
         print("no config file")
@@ -493,11 +516,7 @@ def main():
 
         #MAIN OUTPUT CODE
         if((time.time() - Timer) >= demon.timer):
-            for (recieverId, sock) in OutputSockets:
-                packet = generate_update_packet(recieverId, routerId, table)
-                print("sending to port " + str(sock[1]))
-                # sock[0].sendto(str.encode("This is a test " + str(temp)), (HOST, sock[1]))
-                sock[0].sendto(packet, (HOST, sock[1]))
+            send_update_packet(OutputSockets, routerId, table)
             temp += 1
             Timer = time.time()
         
@@ -518,12 +537,13 @@ def main():
         ##------------------------------------------------------------------------------
         for sock in ready_socks:
             data, addr = sock.recvfrom(1024) # This is will not block
-            print ("received message:", data)
+            # print ("received packet")
             sender_id, entries = read_packet(routerId, data)
-            print(table)
-            update_table(sender_id, table, entries)
-            print(table)
-            print()
+            print ("received packet from " + str(sender_id))
+            # print(table)
+            update_table(sender_id, table, entries, routerId, OutputSockets)
+            # print(table)
+            # print()
     
 
 
