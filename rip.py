@@ -3,6 +3,7 @@ import socket
 import select
 import datetime
 import time
+import random
 
 HOST = "127.0.0.1"
 UNREACHABLE = 28            # 16 in documentation 
@@ -77,10 +78,16 @@ class Table_Entry:
         self.router = router
         self.distance = distance
         self.nexthop = nexthop
-        self.timedOut = True
+        self.last_response = time.time()
 
     def __repr__(self):
-        return "|DEST: {} | DIST: {} | next hop: {}| timedout: {}".format(self.router, self.distance, self.nexthop, self.timedOut)
+        return "|DEST: {} | DIST: {} | next hop: {}| last response timer: {}".format(self.router, self.distance, self.nexthop, int(time.time() - self.last_response))
+    
+    def timedOut(self, seconds):
+        return int(time.time() - self.last_response) == seconds
+
+    def garbage(self, timeout, seconds):
+        return int(time.time() - self.last_response) >= (timeout + seconds)
 
 #------------------------------------------------------------------------------------------------------------------
 
@@ -205,9 +212,16 @@ def read_packet(own_id, packet):
         print("unable to read packet")
         return entries
 
-def update_table(sender_id, table, entries, routerId, OutputSockets):
+def update_table(sender_id, table, entries, routerId, OutputSockets, adj):
+    print(table)
+    if table[sender_id] is None:
+        for neighbour in adj: 
+            if neighbour.router == sender_id:        
+                table.append(Table_Entry(sender_id, neighbour.distance, sender_id))
+                break
 
-    table[sender_id].timedOut = False          # A packet has been recieved from this sender since the timeout
+    else:
+        table[sender_id].last_response = time.time()         # A packet has been recieved from this sender since the timeout
     table_change = False                       # bool for if there is a table change
 
     for entry in entries:
@@ -215,7 +229,6 @@ def update_table(sender_id, table, entries, routerId, OutputSockets):
 
         if table[entry.router] is None:         # new router id added is added to table
             add_entry(table, entry)
-            table_change = True
         else:
             # bellman ford updates to table
             if bellman_ford(table, entry):
@@ -224,21 +237,20 @@ def update_table(sender_id, table, entries, routerId, OutputSockets):
     # TRIGGERED UPDATE
     if table_change:
         print(table)                                                # if there is a table change send
-        print("A Table Change has occured resending packets\n")
+        print("A Table Change has occured that has made a route unreachable\nResending packets\n")
         send_update_packet(OutputSockets, routerId, table)
 
 
 
-                  
 def add_entry(table, entry):
+    print(table)
     dest = entry.router
     dist = entry.distance
     sender = entry.nexthop
 
     new_dist = dist + table[sender].distance
     if new_dist >= UNREACHABLE:
-        new_dist = UNREACHABLE
-        sender = None
+        return
     new_entry = Table_Entry(dest, new_dist, sender)
     table.append(new_entry)
 
@@ -248,6 +260,7 @@ def bellman_ford(routing_table, response_entry):
     dist = response_entry.distance
     response_sender = response_entry.nexthop
     original = routing_table[dest].distance
+    original_nexthop = routing_table[dest].nexthop
 
     new_distance = min(dist + routing_table[response_sender].distance , routing_table[dest].distance)
     
@@ -259,12 +272,17 @@ def bellman_ford(routing_table, response_entry):
 
     elif new_distance != routing_table[dest].distance:                                  # otherwise if new distance is smaller than one in table relace it (this if statement might be redundant!)
         routing_table[dest] = (new_distance, response_sender)
+        routing_table[dest].last_response = time.time()
+
+    elif original_nexthop == routing_table[dest].nexthop:
+        routing_table[dest].last_response = routing_table[routing_table[dest].nexthop].last_response
+
   
     if routing_table[dest].nexthop != None:                                           # NEED TO RETEST THESE LINES 
         if routing_table[routing_table[dest].nexthop].distance == UNREACHABLE:
             routing_table[routing_table[dest]] = (UNREACHABLE, None)
 
-    return original != routing_table[dest].distance
+    return original != routing_table[dest].distance and routing_table[dest].distance == UNREACHABLE
     
 
 
@@ -441,7 +459,7 @@ def outputsockets(demon):
 
 
 
-def timeout(adj, table):
+def timeout(entry, table):
     """ 
     checks for changes in the topology of the network whether or not routers have
     turned off
@@ -452,21 +470,19 @@ def timeout(adj, table):
     """
     print("TIMEOUT")
     print()
-    for neighbour in adj:
-        id = neighbour.router
-        if table[id].timedOut:
-            table[id]= (UNREACHABLE, None)
-        elif table[id].distance == UNREACHABLE:
-            table[id] = neighbour.distance, neighbour.nexthop 
-        table[id].timedOut = True
+    
+    entry.distance = UNREACHABLE
+    entry.nexthop = None
 
-    for entry in table:
-        if table[entry.nexthop] != None:
-            if table[entry.nexthop].distance == UNREACHABLE:
-                entry.distance = UNREACHABLE
-                entry.nexthop = None
     print(table)
     print()
+
+def garbage_timeout(table, entry):
+    print("GARBAGE TIMEOUT")
+    print("entry has been unreachable for atleast 120 seconds")
+    print(entry)
+    table.remove(entry)
+
 
 
 def send_update_packet(OutputSockets, routerId, table):
@@ -508,24 +524,28 @@ def main():
 
 
     Timer = demon.timer
-    timeoutTimer = 60       # timeout will be 180 instead of 60
-    temp = 0
+    timeoutTimer = 180       # timeout will be 180 instead of 60
+    garbageTimer = 120
     while True:
         currentDT = datetime.datetime.now()
         print("\nHeart Beat: " + currentDT.strftime("%H:%M:%S"))
+        print()
+        print(table)
 
         #MAIN OUTPUT CODE
         if((time.time() - Timer) >= demon.timer):
             send_update_packet(OutputSockets, routerId, table)
-            temp += 1
-            Timer = time.time()
+            Timer = time.time() + random.choice(range(-5, 5))
         
         # NEIGHBOUR ROUTER TIMEOUT    
-        # This if statement and timeout function do not work!
-        if((time.time() - timeoutTimer) >= 60):         # timeout will be 180 instead of 60
-            print("ROUTER {}".format(routerId))
-            timeout(adj, table)    
-            timeoutTimer = time.time()
+        for entry in table:
+            if entry != None:
+                if entry.garbage(timeoutTimer, garbageTimer):                  # final will be 180, 120
+                    garbage_timeout(table, entry)
+                elif entry.timedOut(timeoutTimer):                    # final will be 180
+                    timeout(entry, table)
+
+
 
         ##MAIN INPUT CODE
         ##-------------------------------------------------------------------------------
@@ -541,7 +561,7 @@ def main():
             sender_id, entries = read_packet(routerId, data)
             print ("received packet from " + str(sender_id))
             # print(table)
-            update_table(sender_id, table, entries, routerId, OutputSockets)
+            update_table(sender_id, table, entries, routerId, OutputSockets, adj)
             # print(table)
             # print()
     
