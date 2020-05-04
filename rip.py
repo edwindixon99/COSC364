@@ -87,7 +87,7 @@ class Table_Entry:
         return int(time.time() - self.last_response) == seconds
 
     def garbage(self, timeout, seconds):
-        return int(time.time() - self.last_response) >= (timeout + seconds)
+        return int(time.time() - self.last_response) >= seconds
 
 #------------------------------------------------------------------------------------------------------------------
 
@@ -473,6 +473,7 @@ def timeout(entry, table):
     
     entry.distance = UNREACHABLE
     entry.nexthop = None
+    entry.last_response = time.time()
 
     print(table)
     print()
@@ -540,10 +541,12 @@ def main():
         # NEIGHBOUR ROUTER TIMEOUT    
         for entry in table:
             if entry != None:
-                if entry.garbage(timeoutTimer, garbageTimer):                  # final will be 180, 120
-                    garbage_timeout(table, entry)
-                elif entry.timedOut(timeoutTimer):                    # final will be 180
-                    timeout(entry, table)
+                if entry.distance == UNREACHABLE:
+                    if entry.garbage(timeoutTimer, garbageTimer):       # final will be 120
+                        garbage_timeout(table, entry)
+                else:
+                    if entry.timedOut(timeoutTimer):                    # final will be 180
+                        timeout(entry, table)
 
 
 
