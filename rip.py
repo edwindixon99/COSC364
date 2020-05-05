@@ -38,10 +38,13 @@ class Routing_Table(list) :     # acts like a dictionary in terms of indexing
     def __init__(self):         
         list.__init__(self)
 
-    def __getitem__(self, router_id):            
-        for entry in self:
-            if entry.router == router_id:
-                return entry
+    def __getitem__(self, router_id):
+        if isinstance(router_id, slice):
+            return super().__getitem__(router_id)
+        else:           
+            for entry in self:
+                if entry.router == router_id:
+                    return entry
 
     def __setitem__(self, router_id, new_data):         # new_data = (distance, nexthop)
         for entry in self:
@@ -277,11 +280,6 @@ def bellman_ford(routing_table, response_entry):
     elif original_nexthop == routing_table[dest].nexthop:
         routing_table[dest].last_response = routing_table[routing_table[dest].nexthop].last_response
 
-  
-    if routing_table[dest].nexthop != None:                                           # NEED TO RETEST THESE LINES 
-        if routing_table[routing_table[dest].nexthop].distance == UNREACHABLE:
-            routing_table[routing_table[dest]] = (UNREACHABLE, None)
-
     return original != routing_table[dest].distance and routing_table[dest].distance == UNREACHABLE
     
 
@@ -357,7 +355,7 @@ def valid_ports(input_ports, output_ports):
         except TypeError:
             print("output-ports must be an integer")
             sys.exit()
-        if not (0 <= port.metric < UNREACHABLE):           # metric bounds between 0 and ?(not sure) 
+        if not (0 <= port.metric < UNREACHABLE):           # metric bounds between 0 and UNREACHABLE 
             print("metric must be positive integer and less than {}".format(UNREACHABLE))
             sys.exit()
 
@@ -494,11 +492,19 @@ def send_update_packet(OutputSockets, routerId, table):
         ID of this router (sender)
     """
 
-    for (recieverId, sock) in OutputSockets:
-        packet = generate_update_packet(recieverId, routerId, table)
-        print("sending to port " + str(sock[1]))
-        print()
-        sock[0].sendto(packet, (HOST, sock[1]))
+    for (recieverId, sock) in OutputSockets: 
+
+        num_packets = len(table)//25                        # how many packets to send
+        for i in range(num_packets+1):
+
+            if i != num_packets:
+                packet = generate_update_packet(recieverId, routerId, table[slice(25*i, 25*(i+1))])
+            else:
+                packet = generate_update_packet(recieverId, routerId, table[slice(25*i, len(table))])
+
+            print("sending to port " + str(sock[1]))
+            print()
+            sock[0].sendto(packet, (HOST, sock[1]))
 
 
 
