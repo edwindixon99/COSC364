@@ -573,7 +573,7 @@ def main():
         ##-------------------------------------------------------------------------------
         # this will block until at least one socket is ready (uncomment the one you want)
             #no timeout
-        #ready_socks,_,_ = select.select(sockets, [], []) 
+        #ready_socks,_,_ = select.select(InputSockets, [], []) 
             #timeout
         ready_socks,_,_ = select.select(InputSockets, [], [], 1) ##timeout is in seconds
         ##------------------------------------------------------------------------------
