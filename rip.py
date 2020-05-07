@@ -218,7 +218,7 @@ def read_packet(own_id, packet):
 
 def update_table(sender_id, table, entries, routerId, OutputSockets, adj):
     print(table)
-    if table[sender_id] is None:
+    if table[sender_id] is None or table[sender_id].nexthop is None:
         for neighbour in adj: 
             if neighbour.router == sender_id:        
                 table.append(Table_Entry(sender_id, neighbour.distance, sender_id))
