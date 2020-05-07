@@ -393,7 +393,7 @@ def get_demon(configs):
   
 def readconf():
     print("\n******trying to open file******\n")
-    file = open("./Config/" + sys.argv[1], "r")
+    file = open("./" + sys.argv[1], "r")
 
     configs = file.readlines()
 
