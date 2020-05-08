@@ -1,3 +1,13 @@
+##############################################
+#name: Daniel Mcinnes
+#code: 11933946
+#
+#name: Edwin Dixon
+#code: 76241975
+##############################################
+
+
+
 import sys
 import socket
 import select
