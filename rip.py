@@ -140,7 +140,7 @@ def generate_update_packet(recieverId, id, table):
         returns: update packet
     """
     packet = message_header(2, id)
-    print("\ngenerating Packet for router {}".format(recieverId))
+    # print("\ngenerating Packet for router {}".format(recieverId))
     for entry in table:
 
         distance = UNREACHABLE
@@ -227,7 +227,7 @@ def read_packet(own_id, packet):
         return entries
 
 def update_table(sender_id, table, entries, routerId, OutputSockets, adj):
-    print(table)
+    # print(table)
     if table[sender_id] is None:
         for neighbour in adj: 
             if neighbour.router == sender_id:        
@@ -255,7 +255,7 @@ def update_table(sender_id, table, entries, routerId, OutputSockets, adj):
 
 
 def add_entry(table, entry):
-    print(table)
+    # print(table)
     dest = entry.router
     dist = entry.distance
     sender = entry.nexthop
@@ -394,29 +394,29 @@ def get_demon(configs):
             update = get_inputs(configs[i])[0]
 
     if (router_id is None or input_ports is None or output_ports is None):      # Won't be able to detect errors in Config file that is formatted incorrect
-        print("Mandatory parameter/s missing. requires router-id, input-ports, outputs")
+        # print("Mandatory parameter/s missing. requires router-id, input-ports, outputs")
         sys.exit()
-    print("loaded values")
-    print(router_id, input_ports,output_ports)
-    print("")
+    # print("loaded values")
+    # print(router_id, input_ports,output_ports)
+    # print("")
 
     if valid_config(router_id, input_ports, output_ports):
         return Demon(router_id, input_ports, output_ports, update)
     else:
-        print("\nCould not use file '{}'\n".format(sys.argv[1])) 
+        # print("\nCould not use file '{}'\n".format(sys.argv[1])) 
         sys.exit()
 
   
 def readconf():
-    print("\n******trying to open file******\n")
+    # print("\n******trying to open file******\n")
     file = open("./" + sys.argv[1], "r")
 
     configs = file.readlines()
 
-    for x in configs:
-        print(x)
+    # for x in configs:
+        # print(x)
 
-    print("********************************\n")
+    # print("********************************\n")
 
     demon = get_demon(configs)
 
@@ -429,33 +429,33 @@ def readconf():
 
 #------------------------------ Port setup -----------------------------------------------------  
 def inputSockets(deamon):
-    print("")
-    print("Starting input socket construction.\n")
+    # print("")
+    # print("Starting input socket construction.\n")
     socket_values = deamon.inputs
     sockets = []
 
     for value in socket_values:
-        print("Building socket " + str(value))
+        # print("Building socket " + str(value))
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.bind((HOST, value))
         sockets.append(sock)
-    print("\ninput socket construction done.\n" + str(len(sockets)) + " scokets have been made.")
+    # print("\ninput socket construction done.\n" + str(len(sockets)) + " scokets have been made.")
     
     return sockets  
 
  
 def outputsockets(demon):
-    print("")
-    print("Starting output socket construction.\n")
+    # print("")
+    # print("Starting output socket construction.\n")
     socket_values = demon.outputs
     sockets = []
     
     for value in socket_values:
-        print("Building socket " + str(value.port))
+        # print("Building socket " + str(value.port))
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         #sock.connect((HOST, value.port))
         sockets.append((value.peer_id, (sock, value.port)))
-    print("\nOutput socket construction done.\n" + str(len(sockets)) + " scokets have been made.")
+    # print("\nOutput socket construction done.\n" + str(len(sockets)) + " scokets have been made.")
     
     return sockets 
 
@@ -476,21 +476,21 @@ def timeout(entry, table):
     adj:
         list of entries of adjacent routers
     """
-    print("TIMEOUT")
-    print()
+    # print("TIMEOUT")
+    # print()
     
     entry.distance = UNREACHABLE
     entry.nexthop = None
     entry.last_response = time.time()
     entry.route_change = True
 
-    print(table)
-    print()
+    # print(table)
+    # print()
 
 def garbage_timeout(table, entry):
-    print("GARBAGE TIMEOUT")
-    print("entry has been unreachable for atleast 120 seconds")
-    print(entry)
+    # print("GARBAGE TIMEOUT")
+    # print("entry has been unreachable for atleast 120 seconds")
+    # print(entry)
     table.remove(entry)
 
 
@@ -513,14 +513,14 @@ def send_update_packet(OutputSockets, routerId, table):
             else:
                 packet = generate_update_packet(recieverId, routerId, table[slice(25*i, len(table))])
 
-            print("sending to port " + str(sock[1]))
-            print()
+            # print("sending to port " + str(sock[1]))
+            # print()
             sock[0].sendto(packet, (HOST, sock[1]))
 
 def triggered_update(OutputSockets, routerId, table):
-    print("A Table Change has occured that has made a route unreachable\nResending packets\n")
+    # print("A Table Change has occured that has made a route unreachable\nResending packets\n")
     changed_routes = []
-    print(table)
+    # print(table)
     for entry in table:
         if entry.route_change:
             changed_routes.append(entry)
@@ -531,7 +531,7 @@ def triggered_update(OutputSockets, routerId, table):
 
 
 def main():
-    print("starting rip")
+    # print("starting rip")
 
     if (len(sys.argv) < 2):
         print("no config file")
@@ -556,14 +556,18 @@ def main():
     triggered = False
     while True:
         currentDT = datetime.datetime.now()
-        print("\nHeart Beat: " + currentDT.strftime("%H:%M:%S"))
-        print()
-        print(table)
+        # print("\nHeart Beat: " + currentDT.strftime("%H:%M:%S"))
+        # print()
+        # print(table)
 
         #MAIN OUTPUT CODE
         if((time.time() - Timer) >= demon.timer):
+            print("ROUTER {}".format(routerId))
+            print(table)
+            print()
             send_update_packet(OutputSockets, routerId, table)
             Timer = time.time() + random.choice(range(-5, 5))
+
 
 
         if((time.time() - triggeredTimer) >= 5 and triggered):
@@ -596,7 +600,7 @@ def main():
         for sock in ready_socks:
             data, addr = sock.recvfrom(1024) # This is will not block
             sender_id, entries = read_packet(routerId, data)
-            print ("received packet from router " + str(sender_id))
+            # print ("received packet from router " + str(sender_id))
             update_table(sender_id, table, entries, routerId, OutputSockets, adj)
 
     
