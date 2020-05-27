@@ -76,7 +76,9 @@ f = open("assignment.lp", "w")
 bounds = ''
 dvbounds = ''
 ans = ''
+ans2 = ''
 function = 'r'
+new = ''
 
 """demand constraints"""
 for i, ai in enumerate(a, 1):
@@ -85,6 +87,14 @@ for i, ai in enumerate(a, 1):
         h = "h{}{}".format(ai, cj)        ## THIS NEEDS TO BE FOUND OUT/CHANGED      
         empty = '    dem{}{} : {} + {} = {}'.format(ai, cj, i, j, h)
         ans += "\n" + empty
+        empty2 = '    cap{}{} : '.format(ai, cj)
+        for kn, k in enumerate(b):
+            if kn == len(b) -1:
+                empty2 += "u{}{}{} - 2 <= 0".format(ai, k, cj)
+            else:
+                empty2 += "u{}{}{} + ".format(ai, k, cj) 
+            new += '\n    cap{0}{1}{2} : x{0}{1}{2} >= {3}u{0}{1}{2}'.format(ai, k, cj, h)
+        ans2 += "\n" + empty2
         
         
 """capacity constraints"""
@@ -116,14 +126,18 @@ for d in c:
             dvbounds += '\n    x{}{}{} >= 0'.format(s, t, d)
         ans += "\n" + empty
 
+
+
 bounds += '\n    r >= 0'
+bounds += '\n    u >= 0'
+bounds += '\n    u <= 1'
+bounds += '\n    int u'
     
 cplex = "Minimize\n    {}\nSubject to".format(function)
 
-cplex += ans
+cplex += ans + ans2 + new
 
 cplex += '\nBounds' + dvbounds + bounds + "\nEnd"
-#print(cplex)
 f.write(cplex)
 f.close()
 print("done")
