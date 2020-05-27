@@ -2,9 +2,9 @@ import numpy as np
 import subprocess
 import csv
 
-source_nodes = input("enter amount of source nodes: ")
-transit_nodes = input("enter amount of transit nodes: ")
-destination_nodes = input("enter amount of destination nodes: ")
+source_nodes = input("enter amount of source nodes: ") ## THIS IS X
+transit_nodes = input("enter amount of transit nodes: ") ## THIS IS Y
+destination_nodes = input("enter amount of destination nodes: ") ## THIS IS Z
 
 a = []
 i_ = 0
