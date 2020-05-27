@@ -81,21 +81,38 @@ function = 'r'
 new = ''
 
 """demand constraints"""
+#for i, ai in enumerate(a, 1):
+    
+    #for j, cj in enumerate(c, 1):
+        #h = "h{}{}".format(ai, cj)        ## THIS NEEDS TO BE FOUND OUT/CHANGED      
+        #empty = '    dem{}{} : {} + {} = {}'.format(ai, cj, i, j, h)
+        #ans += "\n" + empty
+        #empty2 = '    cap{}{} : '.format(ai, cj)
+        #for kn, k in enumerate(b):
+            #if kn == len(b) -1:
+                #empty2 += "u{}{}{} = 2".format(ai, k, cj)
+            #else:
+                #empty2 += "u{}{}{} + ".format(ai, k, cj) 
+            #new += '\n    cap{0}{1}{2} : x{0}{1}{2} >= {3}u{0}{1}{2}'.format(ai, k, cj, h)
+        #ans2 += "\n" + empty2
+        
+        
 for i, ai in enumerate(a, 1):
     
     for j, cj in enumerate(c, 1):
-        h = "h{}{}".format(ai, cj)        ## THIS NEEDS TO BE FOUND OUT/CHANGED      
-        empty = '    dem{}{} : {} + {} = {}'.format(ai, cj, i, j, h)
-        ans += "\n" + empty
+        h = i + j 
+        empty = '    dem{}{} : '.format(ai, cj, i, j, h)
         empty2 = '    cap{}{} : '.format(ai, cj)
         for kn, k in enumerate(b):
             if kn == len(b) -1:
-                empty2 += "u{}{}{} - 2 <= 0".format(ai, k, cj)
+                empty += "x{}{}{} = {}".format(ai, k, cj, h)
+                empty2 += "u{}{}{} = 2".format(ai, k, cj)
             else:
+                empty += "x{}{}{} + ".format(ai, k, cj)
                 empty2 += "u{}{}{} + ".format(ai, k, cj) 
-            new += '\n    cap{0}{1}{2} : x{0}{1}{2} >= {3}u{0}{1}{2}'.format(ai, k, cj, h)
+            new += '\n    cap{0}{1}{2} : x{0}{1}{2} - {3} u{0}{1}{2} >= 0'.format(ai, k, cj, h)
+        ans += "\n" + empty
         ans2 += "\n" + empty2
-        
         
 """capacity constraints"""
 
