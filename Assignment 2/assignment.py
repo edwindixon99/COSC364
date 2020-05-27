@@ -69,12 +69,11 @@ while iii < int(destination_nodes):
 print(c)
 
 
-demandVolumes = [[40,30,20,10],[10,60,20,40],[20,20,20,20],[70,30,50,10]]
-
 
 f = open("assignment.lp", "w")
 bounds = ''
-dvbounds = ''
+xbounds = ''
+ubounds = ''
 ans = ''
 ans2 = ''
 function = 'r'
@@ -121,40 +120,41 @@ for s in a:
         empty = '    cap{}{} : '.format(s, t)
         for dn, d in enumerate(c):
             if dn == len(c) -1:
-                cCap = "c{}{}".format(s, t)              ## THIS NEEDS TO BE FOUND OUT/CHANGED
-                bounds += '\n    {} >= 0'.format(cCap)
+                cCap = 100
+                #cCap = "c{}{}".format(s, t)              ## THIS NEEDS TO BE FOUND OUT/CHANGED
+                #bounds += '\n    {} >= 0'.format(cCap)
                 empty += "x{}{}{} - {}r <= 0".format(s, t, d, cCap)
             else:
                 empty += "x{}{}{} + ".format(s, t, d)
         ans += "\n" + empty
-        
-        
+           
         
 for d in c:
     for t in b:
         empty = '    cap{}{} : '.format(t, d)
         for sn, s in enumerate(a):
             if sn == len(a) -1:
-                dCap = "d{}{}".format(t, d)              ## THIS NEEDS TO BE FOUND OUT/CHANGED  
-                bounds += '\n    {} >= 0'.format(dCap)
+                dCap = 100
+                #dCap = "d{}{}".format(t, d)              ## THIS NEEDS TO BE FOUND OUT/CHANGED  
+                #bounds += '\n    {} >= 0'.format(dCap)
                 empty += "x{}{}{} - {}r <= 0".format(s, t, d, dCap)
             else:
                 empty += "x{}{}{} + ".format(s, t, d)
-            dvbounds += '\n    x{}{}{} >= 0'.format(s, t, d)
+            xbounds += '\n    x{}{}{} >= 0'.format(s, t, d)
+            ubounds += '\n    u{}{}{}'.format(s, t, d)
         ans += "\n" + empty
 
 
 
 bounds += '\n    r >= 0'
-bounds += '\n    u >= 0'
-bounds += '\n    u <= 1'
-bounds += '\n    int u'
+
     
 cplex = "Minimize\n    {}\nSubject to".format(function)
 
 cplex += ans + ans2 + new
+cplex += "\nInteger" + ubounds
 
-cplex += '\nBounds' + dvbounds + bounds + "\nEnd"
+cplex += '\nBounds' + xbounds + bounds + "\nEnd"
 f.write(cplex)
 f.close()
 print("done")
