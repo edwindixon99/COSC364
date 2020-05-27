@@ -82,8 +82,7 @@ function = 'r'
 for i, ai in enumerate(a, 1):
     
     for j, cj in enumerate(c, 1):
-        h = "h{}{}".format(i, j)        ## THIS NEEDS TO BE FOUND OUT/CHANGED      
-        print(ai, cj)
+        h = "h{}{}".format(ai, cj)        ## THIS NEEDS TO BE FOUND OUT/CHANGED      
         empty = '    dem{}{} : {} + {} = {}'.format(ai, cj, i, j, h)
         ans += "\n" + empty
         
@@ -118,22 +117,6 @@ for d in c:
         ans += "\n" + empty
 
 bounds += '\n    r >= 0'
-
-#for k in c:
-    #for j in b:
-        ##print("cap{}{}".format(i, j))
-        #empty = '    cap{}{} : '.format(j, k)
-        #for i in range(len(a)):
-            #if i == len(a) -1:
-                #empty += "x{}{}{} - 100r <= 0".format(a[i], j, k)
-            #else:
-                #empty += "x{}{}{} + ".format(a[i], j, k)
-            #bounds += '\n    x{}{}{} >= 0'.format(a[i], j, k)
-        #ans += "\n" + empty
-        
-        
-    #ans += "\n" + empty
-    
     
 cplex = "Minimize\n    {}\nSubject to".format(function)
 
