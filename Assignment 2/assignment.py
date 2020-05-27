@@ -1,7 +1,3 @@
-import numpy as np
-import subprocess
-import csv
-
 
 def get_source_nodes():
     source_nodes = input("enter amount of source nodes: ") ## THIS IS Y
@@ -49,103 +45,104 @@ print()
 transit_nodes = get_transit_nodes()
 print()
 destination_nodes = get_destination_nodes()
+print()
 
 a = []
 i_ = 0
 while i_ < int(source_nodes):
-    a.append("s"+str(i_+1))
+    a.append("S"+str(i_+1))
     i_ += 1
 print(a)
 
 b = []
 ii = 0
 while ii < int(transit_nodes):
-    b.append("t"+str(ii+1))
+    b.append("T"+str(ii+1))
     ii += 1
 print(b)
 
 c = []
 iii = 0
 while iii < int(destination_nodes):
-    c.append("d"+str(iii+1))
+    c.append("D"+str(iii+1))
     iii += 1
 print(c)
-#a = ['A', 'B', 'C', 'D']
-#b = ['X', 'Y', 'Z']
-#c = [1, 2, 3, 4]
+
 
 demandVolumes = [[40,30,20,10],[10,60,20,40],[20,20,20,20],[70,30,50,10]]
 
 
-#f = open("assignment.lp", "w")
+f = open("assignment.lp", "w")
 bounds = ''
+dvbounds = ''
 ans = ''
 function = 'r'
 
 """demand constraints"""
-for i, ai in enumerate(a):
+for i, ai in enumerate(a, 1):
     
-    for j, cj in enumerate(c):
-        empty = '    dem{}{} : '.format(ai, cj)
-         
-        for k in range(len(b)):
-            if k == len(b) -1:
-                empty += "x{}{}{} = {}".format(ai, b[k], cj, demandVolumes[i][j])
-            else:
-                empty += "x{}{}{} + ".format(ai, b[k], cj)
-        
+    for j, cj in enumerate(c, 1):
+        h = "h{}{}".format(i, j)        ## THIS NEEDS TO BE FOUND OUT/CHANGED      
+        print(ai, cj)
+        empty = '    dem{}{} : {} + {} = {}'.format(ai, cj, i, j, h)
         ans += "\n" + empty
         
         
 """capacity constraints"""
 
-for i in a:
-    for j in b:
-        #print("cap{}{}".format(i, j))
-        empty = '    cap{}{} : '.format(i, j)
-        for k in range(len(c)):
-            if k == len(c) -1:
-                empty += "x{}{}{} - 100r <= 0".format(i, j, c[k])
+for s in a:
+    for t in b:
+        empty = '    cap{}{} : '.format(s, t)
+        for dn, d in enumerate(c):
+            if dn == len(c) -1:
+                cCap = "c{}{}".format(s, t)              ## THIS NEEDS TO BE FOUND OUT/CHANGED
+                bounds += '\n    {} >= 0'.format(cCap)
+                empty += "x{}{}{} - {}r <= 0".format(s, t, d, cCap)
             else:
-                empty += "x{}{}{} + ".format(i, j, c[k])
-        
+                empty += "x{}{}{} + ".format(s, t, d)
         ans += "\n" + empty
         
         
-for k in c:
-    for j in b:
-        #print("cap{}{}".format(i, j))
-        empty = '    cap{}{} : '.format(j, k)
-        for i in range(len(a)):
-            if i == len(a) -1:
-                empty += "x{}{}{} - 100r <= 0".format(a[i], j, k)
+        
+for d in c:
+    for t in b:
+        empty = '    cap{}{} : '.format(t, d)
+        for sn, s in enumerate(a):
+            if sn == len(a) -1:
+                dCap = "d{}{}".format(t, d)              ## THIS NEEDS TO BE FOUND OUT/CHANGED  
+                bounds += '\n    {} >= 0'.format(dCap)
+                empty += "x{}{}{} - {}r <= 0".format(s, t, d, dCap)
             else:
-                empty += "x{}{}{} + ".format(a[i], j, k)
-            bounds += '\n    x{}{}{} >= 0'.format(a[i], j, k)
+                empty += "x{}{}{} + ".format(s, t, d)
+            dvbounds += '\n    x{}{}{} >= 0'.format(s, t, d)
         ans += "\n" + empty
-        
-        
-    #ans += "\n" + empty
-    
-#for j in range(len(b)):
-    #empty = '    b{} : '.format(j+1)
-    
-    #for i in range(len(a)):
 
-        #if i == len(a) -1:
-            #empty += "x{}{} = {}".format(i+1, j+1, b[j])
-        #else:
-            #empty += "x{}{} + ".format(i+1, j+1)
+bounds += '\n    r >= 0'
+
+#for k in c:
+    #for j in b:
+        ##print("cap{}{}".format(i, j))
+        #empty = '    cap{}{} : '.format(j, k)
+        #for i in range(len(a)):
+            #if i == len(a) -1:
+                #empty += "x{}{}{} - 100r <= 0".format(a[i], j, k)
+            #else:
+                #empty += "x{}{}{} + ".format(a[i], j, k)
+            #bounds += '\n    x{}{}{} >= 0'.format(a[i], j, k)
+        #ans += "\n" + empty
+        
+        
     #ans += "\n" + empty
+    
     
 cplex = "Minimize\n    {}\nSubject to".format(function)
 
 cplex += ans
 
-cplex += '\nBounds' + bounds + "\nEnd"
+cplex += '\nBounds' + dvbounds + bounds + "\nEnd"
 #print(cplex)
-#f.write(cplex)
-#f.close()
+f.write(cplex)
+f.close()
 print("done")
         
 
