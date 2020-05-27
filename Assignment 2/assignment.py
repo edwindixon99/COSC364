@@ -2,9 +2,53 @@ import numpy as np
 import subprocess
 import csv
 
-source_nodes = input("enter amount of source nodes: ") ## THIS IS X
-transit_nodes = input("enter amount of transit nodes: ") ## THIS IS Y
-destination_nodes = input("enter amount of destination nodes: ") ## THIS IS Z
+
+def get_source_nodes():
+    source_nodes = input("enter amount of source nodes: ") ## THIS IS Y
+    while True:
+        try:
+            if int(source_nodes) >= 1:
+                return source_nodes
+            else:
+                print("source_nodes needs to be greater than one")
+                source_nodes = input("enter amount of source nodes: ") ## THIS IS X   
+        except ValueError:
+            print("source_nodes needs to be a integer value greater than one")
+            source_nodes = input("enter amount of source nodes: ") ## THIS IS X
+            
+            
+def get_transit_nodes():
+    transit_nodes = input("enter amount of transit nodes: ") ## THIS IS Y
+    while True:
+        try:
+            if int(transit_nodes) >= 2:
+                return transit_nodes
+            else:
+                print("transit_nodes needs to be greater than two")
+                transit_nodes = input("enter amount of transit nodes: ") ## THIS IS Y    
+        except ValueError:
+            print("transit_nodes needs to be a integer value greater than two")
+            transit_nodes = input("enter amount of transit nodes: ") ## THIS IS Y    
+    
+def get_destination_nodes():
+    destination_nodes = input("enter amount of destination nodes: ") ## THIS IS Y
+    while True:
+        try:
+            if int(destination_nodes) >= 1:
+                return destination_nodes
+            else:
+                print("destination_nodes needs to be greater than one")
+                destination_nodes = input("enter amount of destination nodes: ") ## THIS IS Z   
+        except ValueError:
+            print("destination_nodes needs to be a integer value greater than one")
+            destination_nodes = input("enter amount of destination nodes: ") ## THIS IS Z
+            
+          
+source_nodes = get_source_nodes()    
+print() 
+transit_nodes = get_transit_nodes()
+print()
+destination_nodes = get_destination_nodes()
 
 a = []
 i_ = 0
@@ -33,7 +77,7 @@ print(c)
 demandVolumes = [[40,30,20,10],[10,60,20,40],[20,20,20,20],[70,30,50,10]]
 
 
-f = open("assignment.lp", "w")
+#f = open("assignment.lp", "w")
 bounds = ''
 ans = ''
 function = 'r'
@@ -100,8 +144,8 @@ cplex += ans
 
 cplex += '\nBounds' + bounds + "\nEnd"
 #print(cplex)
-f.write(cplex)
-f.close()
+#f.write(cplex)
+#f.close()
 print("done")
         
 
