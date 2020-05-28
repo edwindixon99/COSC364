@@ -49,6 +49,8 @@ print()
 
 
 
+
+
 a = []
 i_ = 0
 while i_ < int(source_nodes):
@@ -117,8 +119,7 @@ for i, s in enumerate(a, 1):
         for dn, d in enumerate(c):
             if dn == len(c) -1:
                 cCap = "c{}{}".format(s, t)              ## THIS NEEDS TO BE FOUND OUT/CHANGED
-                #bounds += '\n    {} >= 0'.format(cCap)
-                #empty2 += "x{}{}{} = {}".format(s, t, d, h)
+                bounds += '\n    {} >= 0'.format(cCap)
                 empty += "x{}{}{} - {}r <= 0".format(s, t, d, cCap)
             else:
                 empty += "x{}{}{} + ".format(s, t, d)
@@ -137,7 +138,7 @@ for i, d in enumerate(c, 1):
         for sn, s in enumerate(a):
             if sn == len(a) -1:
                 dCap = "d{}{}".format(t, d)              ## THIS NEEDS TO BE FOUND OUT/CHANGED  
-                #bounds += '\n    {} >= 0'.format(dCap)
+                bounds += '\n    {} >= 0'.format(dCap)
                 empty += "x{}{}{} - {}r <= 0".format(s, t, d, dCap)
             else:
                 empty += "x{}{}{} + ".format(s, t, d)
@@ -154,7 +155,7 @@ for k in b:
     counter = 0
     for i in a:
         for j in c:
-            if counter == len(a) + len(c) -1:
+            if counter == len(a) * len(c) -1:
                 empty += "x{0}{1}{2} = l{1}".format(i, k, j)
             else:
                 empty += "x{}{}{} + ".format(i, k, j)   
