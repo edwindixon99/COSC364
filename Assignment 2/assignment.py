@@ -47,6 +47,8 @@ print()
 destination_nodes = get_destination_nodes()
 print()
 
+
+
 a = []
 i_ = 0
 while i_ < int(source_nodes):
@@ -80,22 +82,12 @@ function = 'r'
 new = ''
 
 """demand constraints"""
-#for i, ai in enumerate(a, 1):
-    
-    #for j, cj in enumerate(c, 1):
-        #h = "h{}{}".format(ai, cj)        ## THIS NEEDS TO BE FOUND OUT/CHANGED      
-        #empty = '    dem{}{} : {} + {} = {}'.format(ai, cj, i, j, h)
-        #ans += "\n" + empty
-        #empty2 = '    cap{}{} : '.format(ai, cj)
-        #for kn, k in enumerate(b):
-            #if kn == len(b) -1:
-                #empty2 += "u{}{}{} = 2".format(ai, k, cj)
-            #else:
-                #empty2 += "u{}{}{} + ".format(ai, k, cj) 
-            #new += '\n    cap{0}{1}{2} : x{0}{1}{2} >= {3}u{0}{1}{2}'.format(ai, k, cj, h)
-        #ans2 += "\n" + empty2
-        
-        
+
+"""for loop is responsible for:
+   demS1D1 : xS1T1D1 + xS1T2D1 = 2
+   capS1T1D1 : xS1T1D1 - 1.0 uS1T1D1 = 0
+   capS1D1 : uS1T1D1 + uS1T2D1 = 2
+"""
 for i, ai in enumerate(a, 1):
     
     for j, cj in enumerate(c, 1):
@@ -113,54 +105,67 @@ for i, ai in enumerate(a, 1):
         ans2 += "\n" + empty2
         ans += "\n" + empty
         
-"""capacity constraints"""
+"""for loop is responsible for:
+   capS1T1 : xS1T1D1 + xS1T1D2 - cS1T1r <= 0
+"""
+
 
 for i, s in enumerate(a, 1):
     for j, t in enumerate(b, 1):
         h = i + j
-        #empty2 = '    dem{}{} : '.format(s, t)
         empty = '    cap{}{} : '.format(s, t)
         for dn, d in enumerate(c):
             if dn == len(c) -1:
-                #cCap = 100
                 cCap = "c{}{}".format(s, t)              ## THIS NEEDS TO BE FOUND OUT/CHANGED
                 #bounds += '\n    {} >= 0'.format(cCap)
                 #empty2 += "x{}{}{} = {}".format(s, t, d, h)
                 empty += "x{}{}{} - {}r <= 0".format(s, t, d, cCap)
             else:
                 empty += "x{}{}{} + ".format(s, t, d)
-                #empty2 += "x{}{}{} + ".format(s, t, d)
         ans += "\n" + empty
-        #ans2 += "\n" + empty2
-           
-        
+
+"""for loop is responsible for:
+   capT1D1 : xS1T1D1 + xS2T1D1 - dT1D1r <= 0
+   xS1T1D1 >= 0
+   uS1T1D1
+   
+"""
 for i, d in enumerate(c, 1):
     for j, t in enumerate(b, 1):
         h = i + j
-        #empty2 = '    dem{}{} : '.format(s, t)
         empty = '    cap{}{} : '.format(t, d)
         for sn, s in enumerate(a):
             if sn == len(a) -1:
-                #dCap = 100
                 dCap = "d{}{}".format(t, d)              ## THIS NEEDS TO BE FOUND OUT/CHANGED  
                 #bounds += '\n    {} >= 0'.format(dCap)
-                #empty2 += "x{}{}{} = {}".format(s, t, d, h)
                 empty += "x{}{}{} - {}r <= 0".format(s, t, d, dCap)
             else:
-                #empty2 += "x{}{}{} + ".format(s, t, d)
                 empty += "x{}{}{} + ".format(s, t, d)
             xbounds += '\n    x{}{}{} >= 0'.format(s, t, d)
             ubounds += '\n    u{}{}{}'.format(s, t, d)
         ans += "\n" + empty
-        #ans2 += "\n" + empty2
-
-
+        
+        
+"""for loop is responsible for:
+   loadT1 : xS1T1D1 + xS1T1D2 + xS2T1D1 + xS2T1D2 = lT1
+"""
+for k in b:
+    empty = '    load{} : '.format(k)
+    counter = 0
+    for i in a:
+        for j in c:
+            if counter == len(a) + len(c) -1:
+                empty += "x{0}{1}{2} = l{1}".format(i, k, j)
+            else:
+                empty += "x{}{}{} + ".format(i, k, j)   
+            counter += 1
+    ans += "\n" + empty
 
 bounds += '\n    r >= 0'
 
     
 cplex = "Minimize\n    {}\nSubject to".format(function)
-cplex += ans2 + ans  + new
+cplex +=  ans + ans2 + new
 cplex += '\nBounds' + xbounds + bounds
 cplex += "\nInteger" + ubounds
 
