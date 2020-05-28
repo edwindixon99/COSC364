@@ -100,55 +100,59 @@ for i, ai in enumerate(a, 1):
     
     for j, cj in enumerate(c, 1):
         h = i + j 
+        empty = '    dem{}{} : '.format(ai, cj)
         empty2 = '    cap{}{} : '.format(ai, cj)
         for kn, k in enumerate(b):
             if kn == len(b) -1:
                 empty2 += "u{}{}{} = 2".format(ai, k, cj)
+                empty += "x{}{}{} = {}".format(s, t, d, h)
             else:
                 empty2 += "u{}{}{} + ".format(ai, k, cj) 
+                empty += "x{}{}{} + ".format(ai, k, cj)
             new += '\n    cap{0}{1}{2} : x{0}{1}{2} - {3} u{0}{1}{2} >= 0'.format(ai, k, cj, h)
         ans2 += "\n" + empty2
+        ans += "\n" + empty
         
 """capacity constraints"""
 
 for i, s in enumerate(a, 1):
     for j, t in enumerate(b, 1):
         h = i + j
-        empty2 = '    dem{}{} : '.format(s, t)
+        #empty2 = '    dem{}{} : '.format(s, t)
         empty = '    cap{}{} : '.format(s, t)
         for dn, d in enumerate(c):
             if dn == len(c) -1:
                 cCap = 100
                 #cCap = "c{}{}".format(s, t)              ## THIS NEEDS TO BE FOUND OUT/CHANGED
                 #bounds += '\n    {} >= 0'.format(cCap)
-                empty2 += "x{}{}{} = {}".format(s, t, d, h)
+                #empty2 += "x{}{}{} = {}".format(s, t, d, h)
                 empty += "x{}{}{} - {}r <= 0".format(s, t, d, cCap)
             else:
                 empty += "x{}{}{} + ".format(s, t, d)
-                empty2 += "x{}{}{} + ".format(s, t, d)
+                #empty2 += "x{}{}{} + ".format(s, t, d)
         ans += "\n" + empty
-        ans2 += "\n" + empty2
+        #ans2 += "\n" + empty2
            
         
 for i, d in enumerate(c, 1):
     for j, t in enumerate(b, 1):
         h = i + j
-        empty2 = '    dem{}{} : '.format(s, t)
+        #empty2 = '    dem{}{} : '.format(s, t)
         empty = '    cap{}{} : '.format(t, d)
         for sn, s in enumerate(a):
             if sn == len(a) -1:
                 dCap = 100
                 #dCap = "d{}{}".format(t, d)              ## THIS NEEDS TO BE FOUND OUT/CHANGED  
                 #bounds += '\n    {} >= 0'.format(dCap)
-                empty2 += "x{}{}{} = {}".format(s, t, d, h)
+                #empty2 += "x{}{}{} = {}".format(s, t, d, h)
                 empty += "x{}{}{} - {}r <= 0".format(s, t, d, dCap)
             else:
-                empty2 += "x{}{}{} + ".format(s, t, d)
+                #empty2 += "x{}{}{} + ".format(s, t, d)
                 empty += "x{}{}{} + ".format(s, t, d)
             xbounds += '\n    x{}{}{} >= 0'.format(s, t, d)
             ubounds += '\n    u{}{}{}'.format(s, t, d)
         ans += "\n" + empty
-        ans2 += "\n" + empty2
+        #ans2 += "\n" + empty2
 
 
 
