@@ -118,9 +118,9 @@ for i, s in enumerate(a, 1):
         empty = '    cap{}{} : '.format(s, t)
         for dn, d in enumerate(c):
             if dn == len(c) -1:
-                cCap = "c{}{}".format(s, t)              ## THIS NEEDS TO BE FOUND OUT/CHANGED
+                cCap = "c{}{}r".format(s, t)              ## THIS NEEDS TO BE FOUND OUT/CHANGED
                 bounds += '\n    {} >= 0'.format(cCap)
-                empty += "x{}{}{} - {}r <= 0".format(s, t, d, cCap)
+                empty += "x{}{}{} - {} <= 0".format(s, t, d, cCap)
             else:
                 empty += "x{}{}{} + ".format(s, t, d)
         ans += "\n" + empty
@@ -137,9 +137,9 @@ for i, d in enumerate(c, 1):
         empty = '    cap{}{} : '.format(t, d)
         for sn, s in enumerate(a):
             if sn == len(a) -1:
-                dCap = "d{}{}".format(t, d)              ## THIS NEEDS TO BE FOUND OUT/CHANGED  
+                dCap = "d{}{}r".format(t, d)              ## THIS NEEDS TO BE FOUND OUT/CHANGED  
                 bounds += '\n    {} >= 0'.format(dCap)
-                empty += "x{}{}{} - {}r <= 0".format(s, t, d, dCap)
+                empty += "x{}{}{} - {} <= 0".format(s, t, d, dCap)
             else:
                 empty += "x{}{}{} + ".format(s, t, d)
             xbounds += '\n    x{}{}{} >= 0'.format(s, t, d)
