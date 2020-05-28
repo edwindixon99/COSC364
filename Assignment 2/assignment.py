@@ -13,18 +13,18 @@ def get_source_nodes():
             source_nodes = input("enter amount of source nodes: ") ## THIS IS X
             
             
-def get_transit_nodes():
-    transit_nodes = input("enter amount of transit nodes: ") ## THIS IS Y
+def get_trconstraintsit_nodes():
+    trconstraintsit_nodes = input("enter amount of trconstraintsit nodes: ") ## THIS IS Y
     while True:
         try:
-            if int(transit_nodes) >= 2:
-                return transit_nodes
+            if int(trconstraintsit_nodes) >= 2:
+                return trconstraintsit_nodes
             else:
-                print("transit_nodes needs to be greater than two")
-                transit_nodes = input("enter amount of transit nodes: ") ## THIS IS Y    
+                print("trconstraintsit_nodes needs to be greater than two")
+                trconstraintsit_nodes = input("enter amount of trconstraintsit nodes: ") ## THIS IS Y    
         except ValueError:
-            print("transit_nodes needs to be a integer value greater than two")
-            transit_nodes = input("enter amount of transit nodes: ") ## THIS IS Y    
+            print("trconstraintsit_nodes needs to be a integer value greater than two")
+            trconstraintsit_nodes = input("enter amount of trconstraintsit nodes: ") ## THIS IS Y    
     
 def get_destination_nodes():
     destination_nodes = input("enter amount of destination nodes: ") ## THIS IS Y
@@ -42,7 +42,7 @@ def get_destination_nodes():
           
 source_nodes = get_source_nodes()    
 print() 
-transit_nodes = get_transit_nodes()
+trconstraintsit_nodes = get_trconstraintsit_nodes()
 print()
 destination_nodes = get_destination_nodes()
 print()
@@ -60,7 +60,7 @@ print(a)
 
 b = []
 ii = 0
-while ii < int(transit_nodes):
+while ii < int(trconstraintsit_nodes):
     b.append("T"+str(ii+1))
     ii += 1
 print(b)
@@ -78,93 +78,93 @@ f = open("assignment.lp", "w")
 bounds = ''
 xbounds = ''
 ubounds = ''
-ans = ''
-ans2 = ''
-function = 'r'
+constraints = ''
+constraints2 = ''
+obj_function = 'r'
 new = ''
 
 """demand constraints"""
 
 """for loop is responsible for:
-   demS1D1 : xS1T1D1 + xS1T2D1 = 2
-   capS1T1D1 : xS1T1D1 - 1.0 uS1T1D1 = 0
-   capS1D1 : uS1T1D1 + uS1T2D1 = 2
+   demSiDj : xSiTkDj + xSiT2Dj = i + j
+   capSiTkDj : xSiTkDj - (i + j)/2 uSiTkDj = 0
+   capSiDj : uSiTkDj + uSiT2Dj = nk
 """
 for i, ai in enumerate(a, 1):
     
     for j, cj in enumerate(c, 1):
         h = i + j 
-        empty = '    dem{}{} : '.format(ai, cj)
-        empty2 = '    cap{}{} : '.format(ai, cj)
+        constraint = '    dem{}{} : '.format(ai, cj)
+        constraint2 = '    cap{}{} : '.format(ai, cj)
         for kn, k in enumerate(b):
             if kn == len(b) -1:
-                empty2 += "u{}{}{} = 2".format(ai, k, cj)
-                empty += "x{}{}{} = {}".format(ai, k, cj, h)
+                constraint2 += "u{}{}{} = 2".format(ai, k, cj)
+                constraint += "x{}{}{} = {}".format(ai, k, cj, h)
             else:
-                empty2 += "u{}{}{} + ".format(ai, k, cj) 
-                empty += "x{}{}{} + ".format(ai, k, cj)
+                constraint2 += "u{}{}{} + ".format(ai, k, cj) 
+                constraint += "x{}{}{} + ".format(ai, k, cj)
             new += '\n    cap{0}{1}{2} : x{0}{1}{2} - {3} u{0}{1}{2} = 0'.format(ai, k, cj, h/2)
-        ans2 += "\n" + empty2
-        ans += "\n" + empty
+        constraints2 += "\n" + constraint2
+        constraints += "\n" + constraint
         
 """for loop is responsible for:
-   capS1T1 : xS1T1D1 + xS1T1D2 - cS1T1r <= 0
+   capSiTk : xSiTkDj + xSiTkDj - cSiTkr <= 0
 """
 
 
 for i, s in enumerate(a, 1):
     for j, t in enumerate(b, 1):
-        empty = '    cap{}{} : '.format(s, t)
+        constraint = '    cap{}{} : '.format(s, t)
         for dn, d in enumerate(c):
             if dn == len(c) -1:
-                cCap = "c{}{}r".format(s, t)              ## THIS NEEDS TO BE FOUND OUT/CHANGED
+                cCap = "c{}{}r".format(s, t)              
                 bounds += '\n    {} >= 0'.format(cCap)
-                empty += "x{}{}{} - {} <= 0".format(s, t, d, cCap)
+                constraint += "x{}{}{} - {} <= 0".format(s, t, d, cCap)
             else:
-                empty += "x{}{}{} + ".format(s, t, d)
-        ans += "\n" + empty
+                constraint += "x{}{}{} + ".format(s, t, d)
+        constraints += "\n" + constraint
 
 """for loop is responsible for:
-   capT1D1 : xS1T1D1 + xS2T1D1 - dT1D1r <= 0
-   xS1T1D1 >= 0
-   uS1T1D1
+   capTkDj : xS1T1D1 + xS2T1D1 - dT1D1r <= 0
+   xSiTkDj >= 0
+   uSiTkDj
    
 """
 for i, d in enumerate(c, 1):
     for j, t in enumerate(b, 1):
-        empty = '    cap{}{} : '.format(t, d)
+        constraint = '    cap{}{} : '.format(t, d)
         for sn, s in enumerate(a):
             if sn == len(a) -1:
-                dCap = "d{}{}r".format(t, d)              ## THIS NEEDS TO BE FOUND OUT/CHANGED  
+                dCap = "d{}{}r".format(t, d)              
                 bounds += '\n    {} >= 0'.format(dCap)
-                empty += "x{}{}{} - {} <= 0".format(s, t, d, dCap)
+                constraint += "x{}{}{} - {} <= 0".format(s, t, d, dCap)
             else:
-                empty += "x{}{}{} + ".format(s, t, d)
+                constraint += "x{}{}{} + ".format(s, t, d)
             xbounds += '\n    x{}{}{} >= 0'.format(s, t, d)
             ubounds += '\n    u{}{}{}'.format(s, t, d)
-        ans += "\n" + empty
+        constraints += "\n" + constraint
         
         
 """for loop is responsible for:
    loadT1 : xS1T1D1 + xS1T1D2 + xS2T1D1 + xS2T1D2 = lT1
 """
 for k in b:
-    empty = '    load{} : '.format(k)
+    constraint = '    load{} : '.format(k)
     counter = 0
     for i in a:
         for j in c:
             if counter == len(a) * len(c) -1:
-                empty += "x{0}{1}{2} - l{1} = 0".format(i, k, j)
+                constraint += "x{0}{1}{2} - l{1} = 0".format(i, k, j)
             else:
-                empty += "x{}{}{} + ".format(i, k, j)   
+                constraint += "x{}{}{} + ".format(i, k, j)   
             counter += 1
-    ans += "\n" + empty
+    constraints += "\n" + constraint
 
 bounds += '\n    r >= 0'
 
     
-cplex = "Minimize\n    {}\nSubject to".format(function)
-cplex +=  ans + ans2 + new
+cplex = "Minimize\n    {}\nSubject to".format(obj_function)
+cplex +=  constraints + constraints2 + new
 cplex += '\nBounds' + xbounds + bounds
 cplex += "\nInteger" + ubounds
 
