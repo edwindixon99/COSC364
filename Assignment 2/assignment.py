@@ -109,7 +109,7 @@ for i, ai in enumerate(a, 1):
             else:
                 empty2 += "u{}{}{} + ".format(ai, k, cj) 
                 empty += "x{}{}{} + ".format(ai, k, cj)
-            new += '\n    cap{0}{1}{2} : x{0}{1}{2} - {3} u{0}{1}{2} <= 0'.format(ai, k, cj, h)
+            new += '\n    cap{0}{1}{2} : x{0}{1}{2} = ({3} u{0}{1}{2}) / 2'.format(ai, k, cj, h)
         ans2 += "\n" + empty2
         ans += "\n" + empty
         
