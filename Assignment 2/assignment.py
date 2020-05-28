@@ -156,7 +156,7 @@ for k in b:
     for i in a:
         for j in c:
             if counter == len(a) * len(c) -1:
-                empty += "x{0}{1}{2} = l{1}".format(i, k, j)
+                empty += "x{0}{1}{2} - l{1} = 0".format(i, k, j)
             else:
                 empty += "x{}{}{} + ".format(i, k, j)   
             counter += 1
