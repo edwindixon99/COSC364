@@ -114,7 +114,6 @@ for i, ai in enumerate(a, 1):
 
 for i, s in enumerate(a, 1):
     for j, t in enumerate(b, 1):
-        h = i + j
         empty = '    cap{}{} : '.format(s, t)
         for dn, d in enumerate(c):
             if dn == len(c) -1:
@@ -133,7 +132,6 @@ for i, s in enumerate(a, 1):
 """
 for i, d in enumerate(c, 1):
     for j, t in enumerate(b, 1):
-        h = i + j
         empty = '    cap{}{} : '.format(t, d)
         for sn, s in enumerate(a):
             if sn == len(a) -1:
