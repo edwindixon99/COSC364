@@ -13,18 +13,18 @@ def get_source_nodes():
             source_nodes = input("enter amount of source nodes: ") ## THIS IS X
             
             
-def get_trconstraintsit_nodes():
-    trconstraintsit_nodes = input("enter amount of trconstraintsit nodes: ") ## THIS IS Y
+def get_transit_nodes():
+    transit_nodes = input("enter amount of transit nodes: ") ## THIS IS Y
     while True:
         try:
-            if int(trconstraintsit_nodes) >= 2:
-                return trconstraintsit_nodes
+            if int(transit_nodes) >= 2:
+                return transit_nodes
             else:
-                print("trconstraintsit_nodes needs to be greater than two")
-                trconstraintsit_nodes = input("enter amount of trconstraintsit nodes: ") ## THIS IS Y    
+                print("transit_nodes needs to be greater than two")
+                transit_nodes = input("enter amount of transit nodes: ") ## THIS IS Y    
         except ValueError:
-            print("trconstraintsit_nodes needs to be a integer value greater than two")
-            trconstraintsit_nodes = input("enter amount of trconstraintsit nodes: ") ## THIS IS Y    
+            print("transit_nodes needs to be a integer value greater than two")
+            transit_nodes = input("enter amount of transit nodes: ") ## THIS IS Y    
     
 def get_destination_nodes():
     destination_nodes = input("enter amount of destination nodes: ") ## THIS IS Y
@@ -42,7 +42,7 @@ def get_destination_nodes():
           
 source_nodes = get_source_nodes()    
 print() 
-trconstraintsit_nodes = get_trconstraintsit_nodes()
+transit_nodes = get_transit_nodes()
 print()
 destination_nodes = get_destination_nodes()
 print()
@@ -60,7 +60,7 @@ print(a)
 
 b = []
 ii = 0
-while ii < int(trconstraintsit_nodes):
+while ii < int(transit_nodes):
     b.append("T"+str(ii+1))
     ii += 1
 print(b)
@@ -147,6 +147,7 @@ for i, d in enumerate(c, 1):
         
 """for loop is responsible for:
    loadT1 : xS1T1D1 + xS1T1D2 + xS2T1D1 + xS2T1D2 = lT1
+   loadBalT1 : lT1 - r <= 0
 """
 for k in b:
     constraint = '    load{} : '.format(k)
