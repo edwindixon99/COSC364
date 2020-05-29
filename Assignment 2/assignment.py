@@ -117,7 +117,7 @@ for i, s in enumerate(a, 1):
         constraint = '    cap{}{} : '.format(s, t)
         for dn, d in enumerate(c):
             if dn == len(c) -1:
-                cCap = "c{}{}r".format(s, t)              
+                cCap = "c{}{}".format(s, t)              
                 bounds += '\n    {} >= 0'.format(cCap)
                 constraint += "x{}{}{} - {} <= 0".format(s, t, d, cCap)
             else:
@@ -135,7 +135,7 @@ for i, d in enumerate(c, 1):
         constraint = '    cap{}{} : '.format(t, d)
         for sn, s in enumerate(a):
             if sn == len(a) -1:
-                dCap = "d{}{}r".format(t, d)              
+                dCap = "d{}{}".format(t, d)              
                 bounds += '\n    {} >= 0'.format(dCap)
                 constraint += "x{}{}{} - {} <= 0".format(s, t, d, dCap)
             else:
@@ -150,15 +150,18 @@ for i, d in enumerate(c, 1):
 """
 for k in b:
     constraint = '    load{} : '.format(k)
+    constraint2 = '    loadBal{} : '.format(k)
     counter = 0
     for i in a:
         for j in c:
             if counter == len(a) * len(c) -1:
                 constraint += "x{0}{1}{2} - l{1} = 0".format(i, k, j)
+                constraint2 += "l{0} - r <= 0".format(k)
             else:
                 constraint += "x{}{}{} + ".format(i, k, j)   
             counter += 1
     constraints += "\n" + constraint
+    constraints2 += "\n" + constraint2
 
 bounds += '\n    r >= 0'
 
